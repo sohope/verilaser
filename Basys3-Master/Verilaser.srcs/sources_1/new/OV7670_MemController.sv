@@ -10,7 +10,9 @@ module OV7670_MemController (
     // mem side
     output logic                       we,
     output logic [$clog2(320*240)-1:0] wAddr,
-    output logic [               15:0] wData
+    output logic [               15:0] wData,
+    output logic [                8:0] x_pixel,
+    output logic [                7:0] y_pixel
 );
 
     logic [15:0] pixelData;
@@ -24,6 +26,8 @@ module OV7670_MemController (
             pixelData    <= 0;
             pixelEvenOdd <= 0;
             wAddr        <= 0;
+            x_pixel      <= 0;
+            y_pixel      <= 0;
         end else begin
             if (href) begin
                 if (pixelEvenOdd == 1'b0) begin
@@ -35,11 +39,21 @@ module OV7670_MemController (
                     pixelData[7:0] <= data;
                     pixelEvenOdd   <= ~pixelEvenOdd;
                     wAddr          <= wAddr + 1;
+                    if (x_pixel == 319) begin
+                        x_pixel <= 0;
+                        y_pixel <= y_pixel + 1;
+
+                    end else begin
+                        x_pixel <= x_pixel + 1;
+                    end
+
                 end
             end else if (vsync) begin
                 we           <= 0;
                 pixelEvenOdd <= 0;
                 wAddr        <= 0;
+                x_pixel      <= 0;
+                y_pixel      <= 0;
             end
         end
     end
