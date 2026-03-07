@@ -192,6 +192,11 @@ module sccb_sequencer #(
     end
 endmodule
 
+/** 260307 Somang
+ * N_REGS: 셋팅할 레지스터의 수
+ * rom_addr: rom의 주소
+ * rom_data: 레지스터 주소 8비트 + 레지스터에 쓸 데이터 8비트
+ */
 module OV7670_reg_rom #(
     parameter N_REGS = 20
 ) (
