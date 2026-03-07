@@ -70,7 +70,6 @@ module sccb_master (
         tx_done_next = 0;
         case (state)
             IDLE: begin
-                sda_oen_next = 0;
                 if (sccb_en) begin
                     case ({
                         sccb_start, sccb_stop
