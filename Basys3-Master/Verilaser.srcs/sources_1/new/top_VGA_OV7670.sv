@@ -45,11 +45,18 @@ module top_VGA_OV7670 (
     logic       valid_r;
     logic       valid_g;
     logic       valid_b;
-
+    logic [3:0] orig_r, orig_g, orig_b;
+    logic vga_mask_red, vga_mask_green, vga_mask_blue;
+    logic vga_valid_pixel;
+    assign vga_valid_pixel = DE && (x_pixel < 320) && (y_pixel < 240);
 
     assign led[0] = valid_r;
     assign led[1] = valid_g;
     assign led[2] = valid_b;
+
+    assign port_red   = vga_mask_red ? 4'hF : orig_r;
+    assign port_green = vga_mask_green ? 4'hF : orig_g;
+    assign port_blue  = vga_mask_blue ? 4'hF : orig_b;
 
     clk_wiz_0 instance_name (
         // Clock out ports
@@ -73,17 +80,6 @@ module top_VGA_OV7670 (
         .DE     (DE)
     );
 
-    // ImgMemReader U_FBufferReader (
-    //     .DE        (DE),
-    //     .x_pixel   (x_pixel),
-    //     .y_pixel   (y_pixel),
-    //     .addr      (rAddr),
-    //     .imgData   (rData),
-    //     .port_red  (port_red),
-    //     .port_green(port_green),
-    //     .port_blue (port_blue)
-    // );
-    logic [3:0] orig_r, orig_g, orig_b;
     ImgMemReader U_FBufferReader (
         .DE        (DE),
         .x_pixel   (x_pixel),
@@ -113,39 +109,27 @@ module top_VGA_OV7670 (
         .data (data),
         .we   (we),
         .wAddr(wAddr),
-        .wData(wData),
-        .x_pixel(c_x_pixel),
-        .y_pixel(c_y_pixel)
+        .wData(wData)
     );
-    logic vga_mask_red, vga_mask_green, vga_mask_blue;
-    RGB2HSV u_RGB2HSV_r (
+
+    RGB2HSV u_RGB2HSV (
         .pixel_data(rData),
         .mask_red  (vga_mask_red),
         .mask_green(vga_mask_green),
         .mask_blue (vga_mask_blue)
     );
-    assign port_red   = vga_mask_red ? 4'hF : orig_r;
-    assign port_green = vga_mask_green ? 4'hF : orig_g;
-    assign port_blue  = vga_mask_blue ? 4'hF : orig_b;
 
-
-    RGB2HSV u_RGB2HSV (
-        .pixel_data(wData),
-        .mask_red  (mask_red),
-        .mask_green(mask_green),
-        .mask_blue (mask_blue)
-    );
 
     Blob_Detector u_blob_detector (
-        .pclk(pclk),
+        .pclk(rclk),
         .reset(reset),
-        .we(we),
-        .mask_red(mask_red),
-        .mask_green(mask_green),
-        .mask_blue(mask_blue),
-        .x_pixel(c_x_pixel),
-        .y_pixel(c_y_pixel),
-        .vsync(vsync),
+        .we(vga_valid_pixel),
+        .mask_red(vga_mask_red),
+        .mask_green(vga_mask_green),
+        .mask_blue(vga_mask_blue),
+        .x_pixel(x_pixel),
+        .y_pixel(y_pixel),
+        .vsync(v_sync),
         .center_x_r(center_x_r),
         .center_y_r(center_y_r),
         .center_x_g(center_x_g),
