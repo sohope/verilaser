@@ -25,15 +25,12 @@ module RGB2HSV (
         RGB_delta = RGB_max - RGB_min;
 
         // Saturation = RGB_Delta/RGB_MAX
-        // sat_pass = (RGB_delta > (RGB_max >> 1));  //Saturation > 50 %? pass 
-         sat_pass = (RGB_delta > (RGB_max >> 2));  //Saturation > 25 %? pass 
+        sat_pass = (RGB_delta > (RGB_max >> 1));  //Saturation > 50 %? pass 
+        //  sat_pass = (RGB_delta > (RGB_max >> 2));  //Saturation > 25 %? pass 
 
-        // mask_red = (RGB_max == R8) && sat_pass && (RGB_max > 40);
-        // mask_green = (RGB_max == G8) && sat_pass && (RGB_max > 40);
-        // mask_blue = (RGB_max == B8) && sat_pass && (RGB_max > 40);
-        //
-        mask_red = (RGB_max == R8) && sat_pass ;
-        mask_green = (RGB_max == G8) && sat_pass ;
-        mask_blue = (RGB_max == B8) && sat_pass ;
+        mask_red = (RGB_max == R8) && sat_pass && (RGB_max > 40);
+        mask_green = (RGB_max == G8) && sat_pass && (RGB_max > 40);
+        mask_blue = (RGB_max == B8) && sat_pass && (RGB_max > 40);
+    
     end
  endmodule

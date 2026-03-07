@@ -73,17 +73,27 @@ module top_VGA_OV7670 (
         .DE     (DE)
     );
 
+    // ImgMemReader U_FBufferReader (
+    //     .DE        (DE),
+    //     .x_pixel   (x_pixel),
+    //     .y_pixel   (y_pixel),
+    //     .addr      (rAddr),
+    //     .imgData   (rData),
+    //     .port_red  (port_red),
+    //     .port_green(port_green),
+    //     .port_blue (port_blue)
+    // );
+    logic [3:0] orig_r, orig_g, orig_b;
     ImgMemReader U_FBufferReader (
         .DE        (DE),
         .x_pixel   (x_pixel),
         .y_pixel   (y_pixel),
         .addr      (rAddr),
         .imgData   (rData),
-        .port_red  (port_red),
-        .port_green(port_green),
-        .port_blue (port_blue)
+        .port_red  (orig_r),
+        .port_green(orig_g),
+        .port_blue (orig_b)
     );
-
     FrameBuffer U_FRAMEBUFFER (
         // write side
         .wclk (pclk),
@@ -107,6 +117,17 @@ module top_VGA_OV7670 (
         .x_pixel(c_x_pixel),
         .y_pixel(c_y_pixel)
     );
+    logic vga_mask_red, vga_mask_green, vga_mask_blue;
+    RGB2HSV u_RGB2HSV_r (
+        .pixel_data(rData),
+        .mask_red  (vga_mask_red),
+        .mask_green(vga_mask_green),
+        .mask_blue (vga_mask_blue)
+    );
+    assign port_red   = vga_mask_red ? 4'hF : orig_r;
+    assign port_green = vga_mask_green ? 4'hF : orig_g;
+    assign port_blue  = vga_mask_blue ? 4'hF : orig_b;
+
 
     RGB2HSV u_RGB2HSV (
         .pixel_data(wData),
@@ -118,6 +139,7 @@ module top_VGA_OV7670 (
     Blob_Detector u_blob_detector (
         .pclk(pclk),
         .reset(reset),
+        .we(we),
         .mask_red(mask_red),
         .mask_green(mask_green),
         .mask_blue(mask_blue),
@@ -135,4 +157,5 @@ module top_VGA_OV7670 (
         .valid_b(valid_b)
 
     );
+
 endmodule
