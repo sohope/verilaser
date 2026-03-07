@@ -9,6 +9,8 @@ module top_VGA_OV7670 (
     input  logic       href,
     input  logic       vsync,
     input  logic [7:0] data,
+    input  logic        scl,
+    input  logic        sda,
     //vga port side
     output logic       h_sync,
     output logic       v_sync,
@@ -85,6 +87,5 @@ module top_VGA_OV7670 (
         .wAddr(wAddr),
         .wData(wData)
     );
-
 
 endmodule
