@@ -80,10 +80,12 @@ module sccb_sequencer #(
     localparam WRITE_DATA_WAIT = 4'd7;
     localparam STOP_SEND = 4'd8;
     localparam STOP_WAIT = 4'd9;
-    localparam DONE = 4'd10;
+    localparam DELAY = 4'd10;
+    localparam DONE = 4'd11;
 
     logic [3:0] state, state_next;
     logic [7:0] regIdx, regIdx_next;
+    logic [21:0] delay_cnt, delay_cnt_next;
 
     assign rom_addr = regIdx;
 
@@ -91,15 +93,18 @@ module sccb_sequencer #(
         if (reset) begin
             state  <= START_SEND;
             regIdx <= 0;
+            delay_cnt <= 0;
         end else begin
             state  <= state_next;
             regIdx <= regIdx_next;
+            delay_cnt <= delay_cnt_next;
         end
     end
 
     always_comb begin
         state_next = state;
         regIdx_next = regIdx;
+        delay_cnt_next = delay_cnt;
         sccb_en = 1'b0;
         sccb_start = 1'b0;
         sccb_stop = 1'b0;
@@ -175,11 +180,33 @@ module sccb_sequencer #(
                 sccb_start = 1'b0;
                 sccb_stop = 1'b0;
                 if (tx_ready) begin
-                    if(regIdx == N_REGS -1) begin
-                        state_next = DONE;
+                    state_next = DELAY;
+                end
+            end
+            DELAY: begin
+                if(regIdx == 0) begin
+                    if(delay_cnt == 3_000_000 - 1) begin
+                        delay_cnt_next = 0;
+                        if(regIdx == N_REGS -1) begin
+                            state_next = DONE;
+                        end else begin
+                            regIdx_next = regIdx + 1;
+                            state_next = START_SEND;
+                        end
                     end else begin
-                        regIdx_next = regIdx + 1;
-                        state_next = START_SEND;
+                        delay_cnt_next = delay_cnt + 1;
+                    end
+                end else begin
+                    if(delay_cnt == 100_000 - 1) begin
+                        if(regIdx == N_REGS -1) begin
+                            state_next = DONE;
+                        end else begin
+                            regIdx_next = regIdx + 1;
+                            state_next = START_SEND;
+                        end
+                        delay_cnt_next = 0;
+                    end else begin
+                        delay_cnt_next = delay_cnt + 1;
                     end
                 end
             end
