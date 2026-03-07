@@ -14,7 +14,9 @@ module top_VGA_OV7670 (
     output logic       v_sync,
     output logic [3:0] port_red,
     output logic [3:0] port_green,
-    output logic [3:0] port_blue
+    output logic [3:0] port_blue,
+    //
+    output logic [2:0] led
 );
     logic                         clk_100m;
     logic [                  9:0] x_pixel;
@@ -29,7 +31,25 @@ module top_VGA_OV7670 (
     logic [$clog2(320*240) - 1:0] wAddr;
     logic [                 15:0] wData;
 
-    logic locked;
+    logic                         locked;
+
+    logic mask_red, mask_green, mask_blue;
+    logic [8:0] c_x_pixel;
+    logic [7:0] c_y_pixel;
+    logic [8:0] center_x_r;
+    logic [7:0] center_y_r;
+    logic [8:0] center_x_g;
+    logic [7:0] center_y_g;
+    logic [8:0] center_x_b;
+    logic [7:0] center_y_b;
+    logic       valid_r;
+    logic       valid_g;
+    logic       valid_b;
+
+
+    assign led[0] = valid_r;
+    assign led[1] = valid_g;
+    assign led[2] = valid_b;
 
     clk_wiz_0 instance_name (
         // Clock out ports
@@ -83,8 +103,36 @@ module top_VGA_OV7670 (
         .data (data),
         .we   (we),
         .wAddr(wAddr),
-        .wData(wData)
+        .wData(wData),
+        .x_pixel(c_x_pixel),
+        .y_pixel(c_y_pixel)
     );
 
+    RGB2HSV u_RGB2HSV (
+        .pixel_data(wData),
+        .mask_red  (mask_red),
+        .mask_green(mask_green),
+        .mask_blue (mask_blue)
+    );
 
+    Blob_Detector u_blob_detector (
+        .pclk(pclk),
+        .reset(reset),
+        .mask_red(mask_red),
+        .mask_green(mask_green),
+        .mask_blue(mask_blue),
+        .x_pixel(c_x_pixel),
+        .y_pixel(c_y_pixel),
+        .vsync(vsync),
+        .center_x_r(center_x_r),
+        .center_y_r(center_y_r),
+        .center_x_g(center_x_g),
+        .center_y_g(center_y_g),
+        .center_x_b(center_x_b),
+        .center_y_b(center_y_b),
+        .valid_r(valid_r),
+        .valid_g(valid_g),
+        .valid_b(valid_b)
+
+    );
 endmodule
