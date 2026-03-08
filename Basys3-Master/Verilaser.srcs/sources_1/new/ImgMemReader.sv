@@ -1,21 +1,29 @@
 `timescale 1ns / 1ps
 
 module ImgMemReader (
+    input  logic                       clk,
     input  logic                       DE,
     input  logic [                9:0] x_pixel,
     input  logic [                9:0] y_pixel,
     output logic [$clog2(320*240)-1:0] addr,
     input  logic [               15:0] imgData,
-    output logic [                3:0] port_red,
-    output logic [                3:0] port_green,
-    output logic [                3:0] port_blue
+    output logic [                3:0] red_o,
+    output logic [                3:0] green_o,
+    output logic [                3:0] blue_o,
+    output logic                       DE_o,
+    output logic [                9:0] x_pixel_o,
+    output logic [                9:0] y_pixel_o
 );
     logic qvga_de;
     assign qvga_de = DE && (x_pixel < 320) && (y_pixel < 240);
+    assign addr = qvga_de ? (320 * y_pixel + x_pixel) : 'bz;
+    assign {red_o, green_o, blue_o} = DE_o ? {imgData[15:12], imgData[10:7], imgData[4:1]} : 0;
 
-    assign addr = qvga_de? (320 * y_pixel + x_pixel) : 'bz;
-    // assign addr = DE ? (320 * (y_pixel >> 1) + (x_pixel >> 1)) : 'bz;
-    assign {port_red, port_green, port_blue} = qvga_de ? {imgData[15:12], imgData[10:7], imgData[4:1]} : 0;
+    always_ff @(posedge clk) begin
+        DE_o      <= qvga_de;
+        x_pixel_o <= x_pixel;
+        y_pixel_o <= y_pixel;
+    end
 
 endmodule
 
