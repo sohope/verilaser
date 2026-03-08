@@ -70,28 +70,29 @@ module sccb_sequencer #(
     output logic [ 7:0] rom_addr,
     input  logic [15:0] rom_data
 );
-    localparam START_SEND = 4'd0;
-    localparam START_WAIT = 4'd1;
-    localparam WRITE_ID_SEND = 4'd2;
-    localparam WRITE_ID_WAIT = 4'd3;
-    localparam WRITE_ADDR_SEND = 4'd4;
-    localparam WRITE_ADDR_WAIT = 4'd5;
-    localparam WRITE_DATA_SEND = 4'd6;
-    localparam WRITE_DATA_WAIT = 4'd7;
-    localparam STOP_SEND = 4'd8;
-    localparam STOP_WAIT = 4'd9;
-    localparam DELAY = 4'd10;
-    localparam DONE = 4'd11;
+    localparam POWER_ON        = 4'd0;
+    localparam START_SEND      = 4'd1;
+    localparam START_WAIT      = 4'd2;
+    localparam WRITE_ID_SEND   = 4'd3;
+    localparam WRITE_ID_WAIT   = 4'd4;
+    localparam WRITE_ADDR_SEND = 4'd5;
+    localparam WRITE_ADDR_WAIT = 4'd6;
+    localparam WRITE_DATA_SEND = 4'd7;
+    localparam WRITE_DATA_WAIT = 4'd8;
+    localparam STOP_SEND       = 4'd9;
+    localparam STOP_WAIT       = 4'd10;
+    localparam DELAY           = 4'd11;
+    localparam DONE            = 4'd12;
 
     logic [3:0] state, state_next;
     logic [7:0] regIdx, regIdx_next;
-    logic [21:0] delay_cnt, delay_cnt_next;
+    logic [23:0] delay_cnt, delay_cnt_next;
 
     assign rom_addr = regIdx;
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset) begin
-            state  <= START_SEND;
+            state  <= POWER_ON;
             regIdx <= 0;
             delay_cnt <= 0;
         end else begin
@@ -110,6 +111,14 @@ module sccb_sequencer #(
         sccb_stop = 1'b0;
         tx_data = 8'h0;
         case (state)
+            POWER_ON: begin
+                if (delay_cnt == 15_000_000 - 1) begin  // 150ms at 100MHz
+                    delay_cnt_next = 0;
+                    state_next = START_SEND;
+                end else begin
+                    delay_cnt_next = delay_cnt + 1;
+                end
+            end
             START_SEND: begin
                 sccb_en = 1'b1;
                 sccb_start = 1'b1;

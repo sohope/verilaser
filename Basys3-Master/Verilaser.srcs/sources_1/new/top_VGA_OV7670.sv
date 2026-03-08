@@ -89,7 +89,7 @@ module top_VGA_OV7670 (
     );
 
     OV7670_Init_Controller #(
-        .N_REGS(60)
+        .N_REGS(66)
     ) U_INIT_CONTROLLER (
         .clk  (clk_100m),
         .reset(reset),
