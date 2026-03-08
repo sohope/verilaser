@@ -92,7 +92,7 @@ module sccb_sequencer #(
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset) begin
-            state  <= POWER_ON;
+            state  <= START_SEND;
             regIdx <= 0;
             delay_cnt <= 0;
         end else begin
