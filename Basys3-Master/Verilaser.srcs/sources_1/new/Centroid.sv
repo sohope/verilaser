@@ -30,6 +30,9 @@ module Centroid (
     logic frame_done;
     assign frame_done = (x_in == 319 && y_in == 239 && DE_in);
 
+    logic q1_active;
+    assign q1_active = DE_in && (x_in < 320) && (y_in < 240);
+
     always_ff @(posedge clk or posedge reset) begin
         if (reset) begin
             r_sum_x <= 0;
@@ -65,7 +68,7 @@ module Centroid (
             b_sum_y <= 0;
             b_count <= 0;
 
-        end else if (DE_in) begin
+        end else if (q1_active) begin
             done <= 0;
             if (red_blob) begin
                 r_sum_x <= r_sum_x + x_in;

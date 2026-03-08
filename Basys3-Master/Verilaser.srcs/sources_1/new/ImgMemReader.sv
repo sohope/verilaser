@@ -14,17 +14,22 @@ module ImgMemReader (
     output logic [                9:0] x_pixel_o,
     output logic [                9:0] y_pixel_o
 );
-    logic qvga_de;
-    assign qvga_de = DE && (x_pixel < 320) && (y_pixel < 240);
-    assign addr = qvga_de ? (320 * y_pixel + x_pixel) : 'bz;
-    assign {red_o, green_o, blue_o} = DE_o ? {imgData[15:12], imgData[10:7], imgData[4:1]} : 0;
+    logic [8:0] map_x;
+    logic [8:0] map_y;
+    assign map_x = (x_pixel >= 320) ? (x_pixel - 320) : x_pixel;
+    assign map_y = (y_pixel >= 240) ? (y_pixel - 240) : y_pixel;
+
+    logic valid_640x480;
+    assign valid_640x480 = DE && (x_pixel < 640) && (y_pixel < 480);
+
+    assign addr = valid_640x480 ? (320 * map_y + map_x) : 'bz;
+    assign {red_o,green_o,blue_o} = valid_640x480 ? {imgData[15:12],imgData[10:7],imgData[4:1]} : 0;
 
     always_ff @(posedge clk) begin
-        DE_o      <= qvga_de;
+        DE_o <= valid_640x480;
         x_pixel_o <= x_pixel;
         y_pixel_o <= y_pixel;
     end
-
 endmodule
 
 module ImgMemReader_upscaler (

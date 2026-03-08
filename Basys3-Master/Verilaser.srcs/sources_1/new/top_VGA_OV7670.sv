@@ -205,6 +205,9 @@ module top_VGA_OV7670 (
         .g_target_y(w_g_target_y),
         .b_target_x(w_b_target_x),
         .b_target_y(w_b_target_y),
+        .red_blob(w_red_blob),
+        .green_blob(w_green_blob),
+        .blue_blob(w_blue_blob),
         .vga_rgb   (w_vga_rgb)
     );
 
