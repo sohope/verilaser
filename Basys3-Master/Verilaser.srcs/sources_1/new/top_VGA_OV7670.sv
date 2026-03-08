@@ -185,8 +185,8 @@ module top_VGA_OV7670 (
     logic [11:0] w_vga_rgb;
 
     Crossline_Display u_Crossline_Display (
-        .vga_x     (w_x_pixel_o),
-        .vga_y     (w_y_pixel_o),
+        .vga_x     (w_x_out_BF),
+        .vga_y     (w_y_out_BF),
         .camera_rgb(w_camera_rgb),
         .r_target_x(w_r_target_x),
         .r_target_y(w_r_target_y),
@@ -194,10 +194,15 @@ module top_VGA_OV7670 (
         .g_target_y(w_g_target_y),
         .b_target_x(w_b_target_x),
         .b_target_y(w_b_target_y),
-        .vga_rgb   (w_vga_rgb)
+
+        .red_blob  (w_red_blob),
+        .green_blob(w_green_blob),
+        .blue_blob (w_blue_blob),
+
+        .vga_rgb(w_vga_rgb)
     );
 
-    assign port_red   = w_DE ? w_vga_rgb[11:8] : 4'd0;
-    assign port_green = w_DE ? w_vga_rgb[7:4] : 4'd0;
-    assign port_blue  = w_DE ? w_vga_rgb[3:0] : 4'd0;
+    assign port_red   = DE ? w_vga_rgb[11:8] : 4'd0;
+    assign port_green = DE ? w_vga_rgb[7:4] : 4'd0;
+    assign port_blue  = DE ? w_vga_rgb[3:0] : 4'd0;
 endmodule
