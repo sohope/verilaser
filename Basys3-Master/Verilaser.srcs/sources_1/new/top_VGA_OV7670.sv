@@ -9,6 +9,8 @@ module top_VGA_OV7670 (
     input  logic       href,
     input  logic       vsync,
     input  logic [7:0] data,
+    output logic       scl,
+    inout  wire        sda,
     //vga port side
     output logic       h_sync,
     output logic       v_sync,
@@ -29,7 +31,7 @@ module top_VGA_OV7670 (
     logic [$clog2(320*240) - 1:0] wAddr;
     logic [                 15:0] wData;
 
-    logic locked;
+    logic                         locked;
 
     clk_wiz_0 instance_name (
         // Clock out ports
@@ -86,5 +88,13 @@ module top_VGA_OV7670 (
         .wData(wData)
     );
 
+    OV7670_Init_Controller #(
+        .N_REGS(66)
+    ) U_INIT_CONTROLLER (
+        .clk  (clk_100m),
+        .reset(reset),
+        .sda  (sda),
+        .scl  (scl)
+    );
 
 endmodule
