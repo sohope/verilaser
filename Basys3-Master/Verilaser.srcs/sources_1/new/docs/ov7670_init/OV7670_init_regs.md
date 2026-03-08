@@ -4,7 +4,7 @@ OV7670 QVGA RGB565 초기화 레지스터 테이블. `$readmemh`로 로드.
 
 포맷: `{reg_addr[7:0], reg_data[7:0]}` = 16비트 hex
 
-## 구성 (총 60개)
+## 구성 (총 66개)
 
 ### [0] SW Reset
 | # | hex | reg_addr | reg_data | 설명 |
@@ -39,21 +39,33 @@ QVGA (320x240) 해상도 설정. Implementation Guide Table 2-2 기반.
 | 46-49 | 703A~73F1 | 0x70~0x73 | - | 스케일링 |
 | 50 | A202 | 0xA2 | 0x02 | PCLK delay |
 
-### [51~52] RGB565
+### [51~56] Frame Control
+STM32 `SetFrameControl(168, 24, 12, 492)` 에 해당하는 이미지 윈도우 설정.
+
 | # | hex | reg_addr | reg_data | 설명 |
 |---|-----|----------|----------|------|
-| 51 | 1204 | 0x12 (COM7) | 0x04 | RGB 모드 |
-| 52 | 40D0 | 0x40 (COM15) | 0xD0 | RGB565, full range |
+| 51 | 1715 | 0x17 (HSTART) | 0x15 | 수평 시작 |
+| 52 | 1803 | 0x18 (HSTOP) | 0x03 | 수평 종료 |
+| 53 | 3200 | 0x32 (HREF) | 0x00 | HREF 하위 비트 |
+| 54 | 1903 | 0x19 (VSTART) | 0x03 | 수직 시작 |
+| 55 | 1A7B | 0x1A (VSTOP) | 0x7B | 수직 종료 |
+| 56 | 0300 | 0x03 (VREF) | 0x00 | VREF 하위 비트 |
 
-### [53~59] Color Matrix
+### [57~58] RGB565
+| # | hex | reg_addr | reg_data | 설명 |
+|---|-----|----------|----------|------|
+| 57 | 1214 | 0x12 (COM7) | 0x14 | QVGA + RGB (QVGA 비트 유지 필수) |
+| 58 | 40D0 | 0x40 (COM15) | 0xD0 | RGB565, full range |
+
+### [59~65] Color Matrix
 RGB 색상 매트릭스 계수.
 
 | # | hex | reg_addr | reg_data | 설명 |
 |---|-----|----------|----------|------|
-| 53 | 4FB3 | 0x4F (MTX1) | 0xB3 | |
-| 54 | 50B3 | 0x50 (MTX2) | 0xB3 | |
-| 55 | 5100 | 0x51 (MTX3) | 0x00 | |
-| 56 | 523D | 0x52 (MTX4) | 0x3D | |
-| 57 | 53B0 | 0x53 (MTX5) | 0xB0 | |
-| 58 | 54E4 | 0x54 (MTX6) | 0xE4 | |
-| 59 | 589E | 0x58 (MTX_SIGN) | 0x9E | 부호 비트 |
+| 59 | 4FB3 | 0x4F (MTX1) | 0xB3 | |
+| 60 | 50B3 | 0x50 (MTX2) | 0xB3 | |
+| 61 | 5100 | 0x51 (MTX3) | 0x00 | |
+| 62 | 523D | 0x52 (MTX4) | 0x3D | |
+| 63 | 53B0 | 0x53 (MTX5) | 0xB0 | |
+| 64 | 54E4 | 0x54 (MTX6) | 0xE4 | |
+| 65 | 589E | 0x58 (MTX_SIGN) | 0x9E | 부호 비트 |
