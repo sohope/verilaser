@@ -20,7 +20,7 @@ module ImgMemReader (
     assign map_y = (y_pixel >= 240) ? (y_pixel - 240) : y_pixel;
 
     logic valid_640x480;
-    assign valid_640x480 = DE && (x_pixel < 640) && (y_pixel > 480);
+    assign valid_640x480 = DE && (x_pixel < 640) && (y_pixel < 480);
 
     assign addr = valid_640x480 ? (320 * map_y + map_x) : 'bz;
     assign {red_o,green_o,blue_o} = valid_640x480 ? {imgData[15:12],imgData[10:7],imgData[4:1]} : 0;
