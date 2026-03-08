@@ -29,7 +29,7 @@ module top_VGA_OV7670 (
     logic [$clog2(320*240) - 1:0] wAddr;
     logic [                 15:0] wData;
 
-    logic locked;
+    logic                         locked;
 
     clk_wiz_0 instance_name (
         // Clock out ports
@@ -53,15 +53,15 @@ module top_VGA_OV7670 (
         .DE     (DE)
     );
 
-    ImgMemReader U_FBufferReader (
-        .DE        (DE),
-        .x_pixel   (x_pixel),
-        .y_pixel   (y_pixel),
-        .addr      (rAddr),
-        .imgData   (rData),
-        .port_red  (port_red),
-        .port_green(port_green),
-        .port_blue (port_blue)
+    OV7670_MemController U_OV7670_MemController (
+        .pclk (pclk),
+        .reset(reset),
+        .href (href),
+        .vsync(vsync),
+        .data (data),
+        .we   (we),
+        .wAddr(wAddr),
+        .wData(wData)
     );
 
     FrameBuffer U_FRAMEBUFFER (
@@ -75,16 +75,129 @@ module top_VGA_OV7670 (
         .rData(rData)
     );
 
-    OV7670_MemController U_OV7670_MemController (
-        .pclk (pclk),
-        .reset(reset),
-        .href (href),
-        .vsync(vsync),
-        .data (data),
-        .we   (we),
-        .wAddr(wAddr),
-        .wData(wData)
+    logic w_DE;
+    logic [9:0] w_x_pixel_o, w_y_pixel_o;
+    logic [3:0] w_red_o, w_green_o, w_blue_o;
+
+    ImgMemReader U_FBufferReader (
+        .clk      (rclk),
+        .DE       (DE),
+        .x_pixel  (x_pixel),
+        .y_pixel  (y_pixel),
+        .addr     (rAddr),
+        .imgData  (rData),
+        .red_o    (w_red_o),
+        .green_o  (w_green_o),
+        .blue_o   (w_blue_o),
+        .DE_o     (w_DE),
+        .x_pixel_o(w_x_pixel_o),
+        .y_pixel_o(w_y_pixel_o)
     );
 
+    logic w_DE_o_HSV;
+    logic [9:0] w_x_out_HSV, w_y_out_HSV;
+    logic [7:0] w_H_o_HSV, w_S_o_HSV, w_V_o_HSV;
 
+    HSV_Converter u_HSV_Converter (
+        .clk   (rclk),
+        .reset (reset),
+        .DE_in (w_DE),
+        .x_in  (w_x_pixel_o),
+        .y_in  (w_y_pixel_o),
+        .R_in  (w_red_o),
+        .G_in  (w_green_o),
+        .B_in  (w_blue_o),
+        .DE_out(w_DE_o_HSV),
+        .x_out (w_x_out_HSV),
+        .y_out (w_y_out_HSV),
+        .H_out (w_H_o_HSV),
+        .S_out (w_S_o_HSV),
+        .V_out (w_V_o_HSV)
+    );
+
+    logic w_DE_o_CD;
+    logic [9:0] w_x_out_CD, w_y_out_CD;
+    logic w_red_detect, w_green_detect, w_blue_detect;
+
+    Color_Detect u_Color_Detect (
+        .clk         (rclk),
+        .reset       (reset),
+        .DE_in       (w_DE_o_HSV),
+        .x_in        (w_x_out_HSV),
+        .y_in        (w_y_out_HSV),
+        .H_in        (w_H_o_HSV),
+        .S_in        (w_S_o_HSV),
+        .V_in        (w_V_o_HSV),
+        .DE_out      (w_DE_o_CD),
+        .x_out       (w_x_out_CD),
+        .y_out       (w_y_out_CD),
+        .red_detect  (w_red_detect),
+        .green_detect(w_green_detect),
+        .blue_detect (w_blue_detect)
+    );
+
+    logic w_DE_o_BF;
+    logic [9:0] w_x_out_BF, w_y_out_BF;
+    logic w_red_blob, w_green_blob, w_blue_blob;
+
+    Blob_Filter u_Blob_Filter (
+        .clk         (rclk),
+        .reset       (reset),
+        .DE_in       (w_DE_o_CD),
+        .x_in        (w_x_out_CD),
+        .y_in        (w_y_out_CD),
+        .red_detect  (w_red_detect),
+        .green_detect(w_green_detect),
+        .blue_detect (w_blue_detect),
+        .DE_out      (w_DE_o_BF),
+        .x_out       (w_x_out_BF),
+        .y_out       (w_y_out_BF),
+        .red_blob    (w_red_blob),
+        .green_blob  (w_green_blob),
+        .blue_blob   (w_blue_blob)
+    );
+
+    logic [9:0] w_r_target_x, w_r_target_y;
+    logic [9:0] w_g_target_x, w_g_target_y;
+    logic [9:0] w_b_target_x, w_b_target_y;
+    logic w_done;
+
+    Centroid u_Centroid (
+        .clk       (rclk),
+        .reset     (reset),
+        .DE_in     (w_DE_o_BF),
+        .x_in      (w_x_out_BF),
+        .y_in      (w_y_out_BF),
+        .red_blob  (w_red_blob),
+        .green_blob(w_green_blob),
+        .blue_blob (w_blue_blob),
+        .r_target_x(w_r_target_x),
+        .r_target_y(w_r_target_y),
+        .g_target_x(w_g_target_x),
+        .g_target_y(w_g_target_y),
+        .b_target_x(w_b_target_x),
+        .b_target_y(w_b_target_y),
+        .done      (w_done)
+    );
+
+    logic [11:0] w_camera_rgb;
+    assign w_camera_rgb = {w_red_o, w_green_o, w_blue_o};
+    logic [11:0] w_vga_rgb;
+
+    Crossline_Display u_Crossline_Display (
+        .vga_x     (w_x_pixel_o),
+        .vga_y     (w_y_pixel_o),
+        .camera_rgb(w_camera_rgb),
+        .r_target_x(w_r_target_x),
+        .r_target_y(w_r_target_y),
+        .g_target_x(w_g_target_x),
+        .g_target_y(w_g_target_y),
+        .b_target_x(w_b_target_x),
+        .b_target_y(w_b_target_y),
+        .vga_rgb   (w_vga_rgb)
+    );
+
+    assign port_red   = w_DE ? w_vga_rgb[11:8] : 4'd0;
+    assign port_green = w_DE ? w_vga_rgb[7:4] : 4'd0;
+    assign port_blue  = w_DE ? w_vga_rgb[3:0] : 4'd0;
 endmodule

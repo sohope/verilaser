@@ -58,28 +58,28 @@ module HSV_Converter (
             if (max_val == 0) begin
                 S_out <= 0;
             end else begin
-                S_out <= (delta * 8'd255) / max_val;
+                S_out <= (delta * 16'd255) / max_val;
             end
 
             if (delta == 0) begin
                 H_out <= 0;
             end else if (max_val == R8) begin
                 if (G8 >= B8) begin
-                    H_out <= ((G8 - B8) * 8'd30) / delta;
+                    H_out <= ((G8 - B8) * 16'd30) / delta;
                 end else begin
-                    H_out <= 8'd180 - (((B8 - G8) * 8'd30) / delta);
-                end
+                    H_out <= 8'd180 - (((B8 - G8) * 16'd30) / delta);
+                end                                                                                     
             end else if (max_val == G8) begin
                 if (B8 >= R8) begin
-                    H_out <= 8'd60 + (((B8 - R8) * 8'd30) / delta);
+                    H_out <= 8'd60 + (((B8 - R8) * 16'd30) / delta);
                 end else begin
-                    H_out <= 8'd60 - (((R8 - B8) * 8'd30) / delta);
+                    H_out <= 8'd60 - (((R8 - B8) * 16'd30) / delta);
                 end
             end else begin
                 if (R8 >= G8) begin
-                    H_out <= 8'd120 + (((R8 - G8) * 8'd30) / delta);
+                    H_out <= 8'd120 + (((R8 - G8) * 16'd30) / delta);
                 end else begin
-                    H_out <= 8'd120 - (((G8 - R8) * 8'd30) / delta);
+                    H_out <= 8'd120 - (((G8 - R8) * 16'd30) / delta);
                 end
             end
         end
