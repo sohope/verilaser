@@ -20,8 +20,8 @@ module Color_Detect (
     output logic       blue_detect
 );
 
-    parameter S_MIN = 8'd100;
-    parameter V_MIN = 8'd50;
+    parameter S_MIN = 8'd150;
+    parameter V_MIN = 8'd60;
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset) begin
@@ -38,7 +38,7 @@ module Color_Detect (
             y_out  <= y_in;
             if (DE_in && (S_in >= S_MIN) && V_in > V_MIN) begin
                 // Red : 0~10 or 170~179
-                red_detect   <= ((H_in <= 8'd15) || (H_in >= 8'd165)) ? 1'b1 : 1'b0;
+                red_detect   <= ((H_in <= 8'd6) || (H_in >= 8'd173)) ? 1'b1 : 1'b0;
                 green_detect <= ((H_in <= 8'd75) && (H_in >= 8'd45)) ? 1'b1 : 1'b0;
                 blue_detect  <= ((H_in <= 8'd135) && (H_in >= 8'd105)) ? 1'b1 : 1'b0;
             end else begin
