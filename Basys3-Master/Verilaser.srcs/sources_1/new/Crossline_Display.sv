@@ -1,4 +1,9 @@
-module Crossline_Display (
+module Crossline_Display #(
+    parameter ROI_X_MIN = 10'd120,
+    parameter ROI_X_MAX = 10'd160,
+    parameter ROI_Y_MIN = 10'd120,
+    parameter ROI_Y_MAX = 10'd160
+) (
     input logic [ 9:0] vga_x,      // VGA 현재 X 좌표
     input logic [ 9:0] vga_y,      // VGA 현재 Y 좌표
     input logic [11:0] camera_rgb, // 원본 카메라 영상 (배경용)
@@ -33,12 +38,19 @@ module Crossline_Display (
     assign draw_b_cross = (b_target_x != 0 && b_target_y != 0) &&
                     ((vga_x == b_target_x && vga_y >= b_target_y - 10 && vga_y <= b_target_y + 10) ||
                      (vga_y == b_target_y && vga_x >= b_target_x - 10 && vga_x <= b_target_x + 10));
+    
+    //ROI
+    logic draw_roi_border;
+    assign draw_roi_border = 
+        ((vga_x == ROI_X_MIN || vga_x == ROI_X_MAX) && (vga_y >= ROI_Y_MIN && vga_y <= ROI_Y_MAX)) ||
+        ((vga_y == ROI_Y_MIN || vga_y == ROI_Y_MAX) && (vga_x >= ROI_X_MIN && vga_x <= ROI_X_MAX));
 
- // 화면 출력 결정
+    // 화면 출력 결정
     always_comb begin
         if (vga_y < 240) begin
             if (vga_x < 320) begin
-                if (draw_r_cross)
+                if (draw_roi_border) vga_rgb = 12'h000; //ROI border
+                else if (draw_r_cross)
                     vga_rgb = 12'hF00;  // 빨간색 십자가 출력
                 else if (draw_g_cross)
                     vga_rgb = 12'h0F0;  // 초록색 십자가 출력

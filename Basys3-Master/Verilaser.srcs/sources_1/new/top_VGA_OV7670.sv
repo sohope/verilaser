@@ -33,6 +33,11 @@ module top_VGA_OV7670 (
 
     logic                         locked;
 
+    localparam TARGET_X_MIN = 10'd010;  //x_min:000 
+    localparam TARGET_X_MAX = 10'd300;  //x_max:320
+    localparam TARGET_Y_MIN = 10'd000;  //y_min:000
+    localparam TARGET_Y_MAX = 10'd220;  //y_max:240
+
     clk_wiz_0 instance_name (
         // Clock out ports
         .clk_out1(clk_100m),  // output clk_out1 -> 100MHz 
@@ -130,7 +135,12 @@ module top_VGA_OV7670 (
     logic [9:0] w_x_out_CD, w_y_out_CD;
     logic w_red_detect, w_green_detect, w_blue_detect;
 
-    Color_Detect u_Color_Detect (
+    Color_Detect #(
+        .ROI_X_MIN(TARGET_X_MIN),
+        .ROI_X_MAX(TARGET_X_MAX),
+        .ROI_Y_MIN(TARGET_Y_MIN),
+        .ROI_Y_MAX(TARGET_Y_MAX)
+    ) u_color_detect (
         .clk         (rclk),
         .reset       (reset),
         .DE_in       (w_DE_o_HSV),
@@ -189,16 +199,21 @@ module top_VGA_OV7670 (
         .b_target_x(w_b_target_x),
         .b_target_y(w_b_target_y),
         .done      (w_done),
-        .r_status(),
-        .g_status(),
-        .b_status()
+        .r_status  (),
+        .g_status  (),
+        .b_status  ()
     );
 
     logic [11:0] w_camera_rgb;
     assign w_camera_rgb = {w_red_o, w_green_o, w_blue_o};
     logic [11:0] w_vga_rgb;
 
-    Crossline_Display u_Crossline_Display (
+    Crossline_Display #(
+        .ROI_X_MIN(TARGET_X_MIN),
+        .ROI_X_MAX(TARGET_X_MAX),
+        .ROI_Y_MIN(TARGET_Y_MIN),
+        .ROI_Y_MAX(TARGET_Y_MAX)
+    ) u_display (
         .vga_x     (w_x_pixel_o),
         .vga_y     (w_y_pixel_o),
         .camera_rgb(w_camera_rgb),
@@ -208,9 +223,9 @@ module top_VGA_OV7670 (
         .g_target_y(w_g_target_y),
         .b_target_x(w_b_target_x),
         .b_target_y(w_b_target_y),
-        .red_blob(w_red_blob),
+        .red_blob  (w_red_blob),
         .green_blob(w_green_blob),
-        .blue_blob(w_blue_blob),
+        .blue_blob (w_blue_blob),
         .vga_rgb   (w_vga_rgb)
     );
 
