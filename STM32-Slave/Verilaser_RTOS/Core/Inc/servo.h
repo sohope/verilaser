@@ -12,11 +12,11 @@
 
 typedef struct{
 	uint16_t x;
-	uint8_t  y;
-	uint8_t  status; //target 추적 or ??�?
+	uint16_t y;
+	uint8_t  status;
 } TargetData_t;
 
 void Servo_Init(void);
-void Servo_Track(uint16_t cx, uint8_t cy);
+void Servo_Track(uint16_t cx, uint16_t cy);
 
 #endif /* INC_SERVO_H_ */

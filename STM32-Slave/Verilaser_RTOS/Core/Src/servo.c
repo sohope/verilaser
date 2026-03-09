@@ -31,7 +31,7 @@ void Servo_Init(void)
 	Servo_SetAngle(90.0f, 90.0f); //초기값을 정렬
 }
 
-void Servo_Track(uint16_t cx, uint8_t cy)
+void Servo_Track(uint16_t cx, uint16_t cy)
 {
 	int16_t err_x = (int16_t)cx - SCREEN_CX;
 	int16_t err_y = (int16_t)cy - SCREEN_CY;

@@ -22,7 +22,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "servo.h"
+#include <stdio.h>
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -88,7 +90,10 @@ const osMessageQueueAttr_t Queue_I2C_attributes = {
   .name = "Queue_I2C"
 };
 /* USER CODE BEGIN PV */
-
+uint8_t i2c_rx_buffer[5];
+volatile uint32_t i2c_rx_count = 0;
+volatile uint32_t i2c_err_count = 0;
+char uart_buf[128];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -145,7 +150,15 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+  {
+    const char *msg = "\r\n[BOOT] System started\r\n";
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
 
+    HAL_StatusTypeDef ret = HAL_I2C_Slave_Receive_IT(&hi2c1, i2c_rx_buffer, 5);
+    int len = sprintf(uart_buf, "[BOOT] I2C Slave Listen: %s (addr=0x%02X)\r\n",
+                      (ret == HAL_OK) ? "OK" : "FAIL", (unsigned int)(hi2c1.Init.OwnAddress1 >> 1));
+    HAL_UART_Transmit(&huart2, (uint8_t*)uart_buf, len, 100);
+  }
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -165,7 +178,7 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of Queue_I2C */
-  Queue_I2CHandle = osMessageQueueNew (32, sizeof(uint16_t), &Queue_I2C_attributes);
+  Queue_I2CHandle = osMessageQueueNew (32, sizeof(TargetData_t), &Queue_I2C_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -275,12 +288,12 @@ static void MX_I2C1_Init(void)
   hi2c1.Instance = I2C1;
   hi2c1.Init.ClockSpeed = 100000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 20;
+  hi2c1.Init.OwnAddress1 = 0x20;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
   hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
   if (HAL_I2C_Init(&hi2c1) != HAL_OK)
   {
     Error_Handler();
@@ -425,19 +438,28 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-uint8_t i2c_rx_buffer[4]; //4byte buffer
 void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	if(hi2c -> Instance == I2C1)
 	{
-		TargetData_t txData;
+		i2c_rx_count++;
 
-		txData.x = (i2c_rx_buffer[0] << 8) | i2c_rx_buffer[1];
-		txData.y = i2c_rx_buffer[2];
-		txData.status = i2c_rx_buffer[3];
+		TargetData_t txData;
+		txData.status = i2c_rx_buffer[0];
+		txData.x = (i2c_rx_buffer[1] << 8) | i2c_rx_buffer[2];
+		txData.y = (i2c_rx_buffer[3] << 8) | i2c_rx_buffer[4];
 
 		osMessageQueuePut(Queue_I2CHandle, &txData, 0, 0);
-		HAL_I2C_Slave_Receive_IT(&hi2c1, i2c_rx_buffer,4);
+		HAL_I2C_Slave_Receive_IT(&hi2c1, i2c_rx_buffer, 5);
+	}
+}
+
+void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
+{
+	if(hi2c -> Instance == I2C1)
+	{
+		i2c_err_count++;
+		HAL_I2C_Slave_Receive_IT(&hi2c1, i2c_rx_buffer, 5);
 	}
 }
 /* USER CODE END 4 */
@@ -471,12 +493,15 @@ void Servo_Task(void *argument)
 {
   /* USER CODE BEGIN Servo_Task */
 	TargetData_t rxData;
-	Servo_Init(); //task Î£®ÌîÑ ÏßÑÏûÖ ?†Ñ?óê Î™®ÌÑ∞ 1?öå Ï¥àÍ∏∞?ôî
+	Servo_Init();
   /* Infinite loop */
   for(;;)
   {
 	if(osMessageQueueGet(Queue_I2CHandle, &rxData, NULL, osWaitForever) == osOK)
 	{
+		int len = sprintf(uart_buf, "[RX] x=%u y=%u st=%u\r\n", rxData.x, rxData.y, rxData.status);
+		HAL_UART_Transmit(&huart2, (uint8_t*)uart_buf, len, 10);
+
 		if(rxData.status == 1)
 		{
 			Servo_Track(rxData.x, rxData.y);
@@ -517,7 +542,10 @@ void I2C_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+    int len = sprintf(uart_buf, "[MON] rx=%lu err=%lu i2c_state=0x%02X\r\n",
+                      i2c_rx_count, i2c_err_count, (unsigned int)hi2c1.State);
+    HAL_UART_Transmit(&huart2, (uint8_t*)uart_buf, len, 10);
+    osDelay(2000);
   }
   /* USER CODE END I2C_Task */
 }
