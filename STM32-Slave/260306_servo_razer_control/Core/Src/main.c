@@ -314,9 +314,10 @@ TIM_HandleTypeDef htim4;
  * ★ 여기 좌표만 바꾸고 빌드하면 됩니다 ★
  *   x: 0 ~ 319  (화면 중심 = 160)
  *   y: 0 ~ 239  (화면 중심 = 120)
+ *
  * ════════════════════════════════════════════════════ */
-#define TEST_X    329
-#define TEST_Y    10
+#define TEST_X    160
+#define TEST_Y	  120
 
 /* ── 제어 파라미터 ─────────────────────────────────── */
 #define SCREEN_CX    160
@@ -363,9 +364,10 @@ int main(void)
 
     while (1)
     {
-        /* LED로 결과 표시
-         *   조준 완료 (데드존 내) → LED 계속 ON
-         *   데드존 밖             → LED 깜빡임       */
+        /* 매 33ms마다 반복 추적 */
+        Servo_Track(TEST_X, TEST_Y);
+
+        /* LED로 결과 표시 */
         int16_t ex = (int16_t)TEST_X - SCREEN_CX;
         int16_t ey = (int16_t)TEST_Y - SCREEN_CY;
 
@@ -376,9 +378,21 @@ int main(void)
         else
         {
             HAL_GPIO_TogglePin(led_GPIO_Port, led_Pin);
-            HAL_Delay(200);
         }
+
+        HAL_Delay(33);   /* 30fps */
     }
+
+
+//    **바뀐 것 두 가지:**
+//    ```
+//    1. Servo_Track() → while(1) 안으로 이동
+//       매 33ms마다 Pan/Tilt 동시 업데이트
+//
+//    2. HAL_Delay(200) 제거
+//       → LED 깜빡임 안에 있던 딜레이가
+//         서보 업데이트도 막고 있었음
+//       → 33ms로 통일
 }
 
 /* ════════════════════════════════════════════════════

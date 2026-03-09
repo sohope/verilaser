@@ -22,7 +22,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdlib.h>   /* abs() */
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,7 +32,26 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+/* ???? ?��?��?��?�� 좌표 (?�� 값만 바꿔?�� ?���? ??직임 ?��?��) ????????????????????????????
+ *   (0,   0)   ?�� ?���? ?��  ?�� ?���? ?��?��
+ *   (160, 120) ?�� ?���? 중앙 ?�� ?��?���? ?�� LD2 ON
+ *   (319, 239) ?�� ?��른쪽 ?��?�� ?�� ?���? ?��?��
+ * ???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? */
+#define TEST_X       160     /* 0 ~ 319 */
+#define TEST_Y       120     /* 0 ~ 239 */
 
+#define SCREEN_CX    160     /* ?���? 중심 X */
+#define SCREEN_CY    120     /* ?���? 중심 Y */
+#define GAIN         0.5f    /* 추적 ?��?�� */
+#define DEADZONE_PX  10      /* ?��?���? (px) */
+
+/* ?���? PWM CCR 범위 (TIM3, 50Hz, ARR=19999 기�?)
+ *   CCR_MIN = 1000 ?�� 0°   (1000 μs)
+ *   CCR_MID = 1500 ?�� 90°  (1500 μs)  ?�� 중립
+ *   CCR_MAX = 2000 ?�� 180° (2000 μs)  */
+#define CCR_MIN      1000
+#define CCR_MID      1500
+#define CCR_MAX      2000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -88,7 +107,8 @@ const osMessageQueueAttr_t Queue_I2C_attributes = {
   .name = "Queue_I2C"
 };
 /* USER CODE BEGIN PV */
-
+static float pan_angle  = 90.0f;   /* Pan  ?��?�� 각도 (0~180) */
+static float tilt_angle = 90.0f;   /* Tilt ?��?�� 각도 (0~180) */
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -104,7 +124,8 @@ void StartTask04(void *argument);
 void StartTask05(void *argument);
 
 /* USER CODE BEGIN PFP */
-
+static void Servo_SetAngle(float pan, float tilt);
+static void Servo_Track(uint16_t cx, uint8_t cy);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -145,7 +166,10 @@ int main(void)
   MX_I2C1_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);   /* Pan  : PA6 */
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);   /* Tilt : PA7 */
+  Servo_SetAngle(90.0f, 90.0f);               /* 중립 ?���? */
+  HAL_Delay(500);
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -303,6 +327,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -310,11 +335,20 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 83;
+  htim3.Init.Prescaler = 84-1;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 19999;
+  htim3.Init.Period = 2000-1;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -326,10 +360,14 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0;
+  sConfigOC.Pulse = 1500;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -422,6 +460,44 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+/**
+  * @brief  ?���? 각도 ?�� CCR �??�� ?�� PWM 출력
+  *         pan  : TIM3_CH1 (PA6)
+  *         tilt : TIM3_CH2 (PA7)
+  */
+static void Servo_SetAngle(float pan, float tilt)
+{
+    uint32_t ccr_pan  = (uint32_t)(CCR_MIN + (pan  / 180.0f) * 1000.0f);
+    uint32_t ccr_tilt = (uint32_t)(CCR_MIN + (tilt / 180.0f) * 1000.0f);
+
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, ccr_pan);
+    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, ccr_tilt);
+}
+
+/**
+  * @brief  ?���? 좌표 ?�� ?���? 계산 ?�� ?���? 각도 ?��?�� ?��?��
+  *         ?��?���? ?��?���? ?���? ?��?�� ?�� ?��
+  */
+static void Servo_Track(uint16_t cx, uint8_t cy)
+{
+    int16_t err_x = (int16_t)cx - SCREEN_CX;
+    int16_t err_y = (int16_t)cy - SCREEN_CY;
+
+    if (abs(err_x) < DEADZONE_PX && abs(err_y) < DEADZONE_PX)
+        return;
+
+    pan_angle  += (float)err_x * -GAIN;   /* ?���? 물체 ?�� pan 증�? */
+    tilt_angle += (float)err_y *  GAIN;   /* ?��?�� 물체 ?�� tilt 증�? */
+
+    /* 범위 ?��?��?�� */
+    if (pan_angle  < 0.0f)   pan_angle  = 0.0f;
+    if (pan_angle  > 180.0f) pan_angle  = 180.0f;
+    if (tilt_angle < 0.0f)   tilt_angle = 0.0f;
+    if (tilt_angle > 180.0f) tilt_angle = 180.0f;
+
+    Servo_SetAngle(pan_angle, tilt_angle);
+}
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -434,10 +510,21 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
+  for (;;)
   {
-    osDelay(1);
+    /* TEST_X, TEST_Y 좌표�? ?���? 추적 */
+    Servo_Track(TEST_X, TEST_Y);
+
+    /* ?��?���? ?��?�� ?�� LED ?��?�� */
+    int16_t ex = (int16_t)TEST_X - SCREEN_CX;
+    int16_t ey = (int16_t)TEST_Y - SCREEN_CY;
+
+    if (abs(ex) < DEADZONE_PX && abs(ey) < DEADZONE_PX)
+      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);    /* 조�? ?���? ?�� LED ?��?�� ON */
+    else
+      HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);                 /* 추적 �? ?�� LED 깜빡 */
+
+    osDelay(33);   /* ~30Hz */
   }
   /* USER CODE END 5 */
 }
@@ -452,8 +539,8 @@ void StartDefaultTask(void *argument)
 void StartTask02(void *argument)
 {
   /* USER CODE BEGIN StartTask02 */
-  /* Infinite loop */
-  for(;;)
+  /* ?��?��?�� 중에?�� 비활?�� ?? 추후 StartTask_Servo(argument) ?���? */
+  for (;;)
   {
     osDelay(1);
   }
@@ -470,8 +557,8 @@ void StartTask02(void *argument)
 void StartTask03(void *argument)
 {
   /* USER CODE BEGIN StartTask03 */
-  /* Infinite loop */
-  for(;;)
+  /* ?��?��?�� 중에?�� 비활?�� ?? 추후 StartTask_Laser(argument) ?���? */
+  for (;;)
   {
     osDelay(1);
   }
@@ -488,8 +575,8 @@ void StartTask03(void *argument)
 void StartTask04(void *argument)
 {
   /* USER CODE BEGIN StartTask04 */
-  /* Infinite loop */
-  for(;;)
+  /* ?��?��?�� 중에?�� 비활?�� ?? 추후 StartTask_I2C(argument) ?���? */
+  for (;;)
   {
     osDelay(1);
   }
@@ -506,8 +593,8 @@ void StartTask04(void *argument)
 void StartTask05(void *argument)
 {
   /* USER CODE BEGIN StartTask05 */
-  /* Infinite loop */
-  for(;;)
+  /* ?��?��?�� 중에?�� 비활?�� ?? 추후 StartTask_Buzzer(argument) ?���? */
+  for (;;)
   {
     osDelay(1);
   }
