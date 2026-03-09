@@ -98,10 +98,10 @@ static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
 void StartDefaultTask(void *argument);
-void StartTask02(void *argument);
-void StartTask03(void *argument);
-void StartTask04(void *argument);
-void StartTask05(void *argument);
+void Servo_Task(void *argument);
+void Laser_Task(void *argument);
+void I2C_Task(void *argument);
+void Buzzer_Task(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -165,7 +165,7 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of Queue_I2C */
-  Queue_I2CHandle = osMessageQueueNew (16, sizeof(uint16_t), &Queue_I2C_attributes);
+  Queue_I2CHandle = osMessageQueueNew (32, sizeof(uint16_t), &Queue_I2C_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -176,16 +176,16 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* creation of Task_Servo */
-  Task_ServoHandle = osThreadNew(StartTask02, NULL, &Task_Servo_attributes);
+  Task_ServoHandle = osThreadNew(Servo_Task, NULL, &Task_Servo_attributes);
 
   /* creation of Task_Laser */
-  Task_LaserHandle = osThreadNew(StartTask03, NULL, &Task_Laser_attributes);
+  Task_LaserHandle = osThreadNew(Laser_Task, NULL, &Task_Laser_attributes);
 
   /* creation of Task_I2C */
-  Task_I2CHandle = osThreadNew(StartTask04, NULL, &Task_I2C_attributes);
+  Task_I2CHandle = osThreadNew(I2C_Task, NULL, &Task_I2C_attributes);
 
   /* creation of Task_Buzzer */
-  Task_BuzzerHandle = osThreadNew(StartTask05, NULL, &Task_Buzzer_attributes);
+  Task_BuzzerHandle = osThreadNew(Buzzer_Task, NULL, &Task_Buzzer_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -275,7 +275,7 @@ static void MX_I2C1_Init(void)
   hi2c1.Instance = I2C1;
   hi2c1.Init.ClockSpeed = 100000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.OwnAddress1 = 20;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
@@ -330,6 +330,10 @@ static void MX_TIM3_Init(void)
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
   }
@@ -421,7 +425,21 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+uint8_t i2c_rx_buffer[4]; //4byte buffer
+void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+	if(hi2c -> Instance == I2C1)
+	{
+		TargetData_t txData;
 
+		txData.x = (i2c_rx_buffer[0] << 8) | i2c_rx_buffer[1];
+		txData.y = i2c_rx_buffer[2];
+		txData.status = i2c_rx_buffer[3];
+
+		osMessageQueuePut(Queue_I2CHandle, &txData, 0, 0);
+		HAL_I2C_Slave_Receive_IT(&hi2c1, i2c_rx_buffer,4);
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -442,76 +460,84 @@ void StartDefaultTask(void *argument)
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_StartTask02 */
+/* USER CODE BEGIN Header_Servo_Task */
 /**
 * @brief Function implementing the Task_Servo thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask02 */
-void StartTask02(void *argument)
+/* USER CODE END Header_Servo_Task */
+void Servo_Task(void *argument)
 {
-  /* USER CODE BEGIN StartTask02 */
+  /* USER CODE BEGIN Servo_Task */
+	TargetData_t rxData;
+	Servo_Init(); //task ë£¨í”„ ì§„ìž… ? „?— ëª¨í„° 1?šŒ ì´ˆê¸°?™”
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	if(osMessageQueueGet(Queue_I2CHandle, &rxData, NULL, osWaitForever) == osOK)
+	{
+		if(rxData.status == 1)
+		{
+			Servo_Track(rxData.x, rxData.y);
+		}
+	}
   }
-  /* USER CODE END StartTask02 */
+  /* USER CODE END Servo_Task */
 }
 
-/* USER CODE BEGIN Header_StartTask03 */
+/* USER CODE BEGIN Header_Laser_Task */
 /**
 * @brief Function implementing the Task_Laser thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask03 */
-void StartTask03(void *argument)
+/* USER CODE END Header_Laser_Task */
+void Laser_Task(void *argument)
 {
-  /* USER CODE BEGIN StartTask03 */
+  /* USER CODE BEGIN Laser_Task */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartTask03 */
+  /* USER CODE END Laser_Task */
 }
 
-/* USER CODE BEGIN Header_StartTask04 */
+/* USER CODE BEGIN Header_I2C_Task */
 /**
 * @brief Function implementing the Task_I2C thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask04 */
-void StartTask04(void *argument)
+/* USER CODE END Header_I2C_Task */
+void I2C_Task(void *argument)
 {
-  /* USER CODE BEGIN StartTask04 */
+  /* USER CODE BEGIN I2C_Task */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartTask04 */
+  /* USER CODE END I2C_Task */
 }
 
-/* USER CODE BEGIN Header_StartTask05 */
+/* USER CODE BEGIN Header_Buzzer_Task */
 /**
 * @brief Function implementing the Task_Buzzer thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask05 */
-void StartTask05(void *argument)
+/* USER CODE END Header_Buzzer_Task */
+void Buzzer_Task(void *argument)
 {
-  /* USER CODE BEGIN StartTask05 */
+  /* USER CODE BEGIN Buzzer_Task */
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartTask05 */
+  /* USER CODE END Buzzer_Task */
 }
 
 /**
