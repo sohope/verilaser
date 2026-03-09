@@ -30,14 +30,20 @@ module Color_Detect #(
 
     logic in_roi_sig;
 
+    logic [9:0] map_x;
+    logic [9:0] map_y;
+    assign map_x = (x_in >= 10'd320) ? (x_in - 10'd320) : x_in;
+    assign map_y = (y_in >= 10'd240) ? (y_in - 10'd240) : y_in;
+    
+
     ROI_Filter #(
         .X_MIN(ROI_X_MIN),
         .X_MAX(ROI_X_MAX),
         .Y_MIN(ROI_Y_MIN),
         .Y_MAX(ROI_Y_MAX)
     ) u_roi_filter (
-        .x_in  (x_in),
-        .y_in  (y_in),
+        .x_in  (map_x),
+        .y_in  (map_y),
         .in_roi(in_roi_sig)
     );
 
