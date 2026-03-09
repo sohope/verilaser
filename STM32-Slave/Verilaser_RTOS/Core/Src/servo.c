@@ -14,9 +14,9 @@ extern TIM_HandleTypeDef htim3;
 #define SCREEN_CY   120
 #define GAIN	    0.5f
 #define DEADZONE_PX 10
-#define CCR_MIN         50 // 0 degree
-#define CCR_MID         75 // 90 degree
-#define CCR_MAX         100 //180 degree
+#define CCR_MIN         500  // 0도
+#define CCR_MID         1500 // 90도 (중앙)
+#define CCR_MAX         2500 // 180도
 
 static float pan_angle = 90.0f;
 static float tilt_angle = 90.0f;
@@ -49,13 +49,13 @@ void Servo_Track(uint16_t cx, uint16_t cy)
 
 static void Servo_SetAngle(float pan, float tilt)
 {
-	uint32_t ccr_pan  = (uint32_t)(CCR_MIN + (pan  / 180.0f) * 50.0f);
-	uint32_t ccr_tilt = (uint32_t)(CCR_MIN + (tilt / 180.0f) * 50.0f);
+	// [수정 후] 곱하는 값을 50.0f에서 2000.0f(2500 - 500)로 변경!
+	uint32_t ccr_pan  = (uint32_t)(CCR_MIN + (pan  / 180.0f) * 2000.0f);
+	uint32_t ccr_tilt = (uint32_t)(CCR_MIN + (tilt / 180.0f) * 2000.0f);
 
 	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, ccr_pan);
 	__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, ccr_tilt);
 }
-
 
 
 

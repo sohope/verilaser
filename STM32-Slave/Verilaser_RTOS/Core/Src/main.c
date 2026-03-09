@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "servo.h"
+#include "laser.h"
 #include <stdio.h>
 #include <string.h>
 /* USER CODE END Includes */
@@ -94,6 +95,7 @@ uint8_t i2c_rx_buffer[5];
 volatile uint32_t i2c_rx_count = 0;
 volatile uint32_t i2c_err_count = 0;
 volatile TargetData_t last_rx_data;
+volatile uint8_t g_target_status = 0;
 char uart_buf[128];
 /* USER CODE END PV */
 
@@ -476,11 +478,26 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+  TargetData_t fakeData;
+  fakeData.y = 120;       // Y는 중앙 고정
+  fakeData.status = 1;    // 타겟 발견 상태로 고정
+
+  uint16_t test_x = 160;  // 초기 x 좌표 (중앙)
+
+  static int dir = 1; // 1이면 증가, -1이면 감소
+
+    for(;;)
+    {
+        test_x += (dir * 15); // 5픽셀씩 이동 (숫자를 키우면 빨라짐)
+
+        if(test_x >= 260) dir = -1; // 끝에 도달하면 방향 반전
+        if(test_x <= 60)  dir = 1;  // 반대쪽 끝 도달 시 방향 반전
+
+        fakeData.x = test_x;
+        osMessageQueuePut(Queue_I2CHandle, &fakeData, 0, osWaitForever);
+
+        osDelay(10); // 0.05초 대기 (더 부드럽게 윙~ 하고 움직임)
+    }
   /* USER CODE END 5 */
 }
 
@@ -501,6 +518,8 @@ void Servo_Task(void *argument)
   {
 	if(osMessageQueueGet(Queue_I2CHandle, &rxData, NULL, osWaitForever) == osOK)
 	{
+		g_target_status = rxData.status; //레이저 task한테 현재 타겟 상태 전달
+
 		if(rxData.status == 1)
 		{
 			Servo_Track(rxData.x, rxData.y);
@@ -521,9 +540,21 @@ void Laser_Task(void *argument)
 {
   /* USER CODE BEGIN Laser_Task */
   /* Infinite loop */
+	Laser_Init();
   for(;;)
   {
-    osDelay(1);
+	  if(g_target_status == 1)
+	  {
+    osDelay(300);
+    if(g_target_status == 1)
+    {
+    	Laser_On();
+    }
+	  }
+	  else{
+		  Laser_Off();
+	  }
+	  osDelay(10);
   }
   /* USER CODE END Laser_Task */
 }
