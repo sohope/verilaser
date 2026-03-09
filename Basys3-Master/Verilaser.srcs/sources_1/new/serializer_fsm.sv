@@ -16,6 +16,9 @@ module serializer_fsm #(
     input  logic [9:0] g_target_y,
     input  logic [9:0] b_target_x,
     input  logic [9:0] b_target_y,
+    input  logic       r_status,
+    input  logic       g_status,
+    input  logic       b_status,
     // I2C master interface
     output logic       i2c_en,
     output logic       i2c_start,
@@ -24,9 +27,6 @@ module serializer_fsm #(
     input  logic       tx_done,
     input  logic       tx_ready
 );
-
-    // Latched coordinates
-    logic [9:0] r_x, r_y, g_x, g_y, b_x, b_y;
 
     // FSM states
     typedef enum logic [2:0] {
@@ -39,46 +39,57 @@ module serializer_fsm #(
 
     state_e state;
     logic [1:0] slave_cnt;  // 0, 1, 2
-    logic [2:0] cmd_cnt;    // 0~6 per slave
+    logic [2:0] cmd_cnt;  // 0~6 per slave
+
+    logic [9:0] red_x, red_y;
+    logic [9:0] green_x, green_y;
+    logic [9:0] b_x, b_y;
+    logic       red_st, green_st, blue_st;
 
     // Command sequence per slave:
     //   0: START
     //   1: WRITE slave_addr
-    //   2: WRITE x[9:8]
-    //   3: WRITE x[7:0]
-    //   4: WRITE y[9:8]
-    //   5: WRITE y[7:0]
-    //   6: STOP
+    //   2: WRITE status
+    //   3: WRITE x[9:8]
+    //   4: WRITE x[7:0]
+    //   5: WRITE y[9:8]
+    //   6: WRITE y[7:0]
+    //   7: STOP
 
     logic cmd_is_start, cmd_is_stop;
     assign cmd_is_start = (cmd_cnt == 3'd0);
-    assign cmd_is_stop  = (cmd_cnt == 3'd6);
+    assign cmd_is_stop  = (cmd_cnt == 3'd7);
 
-    // Coordinate / address mux
-    logic [7:0] cur_addr;
-    logic [9:0] cur_x, cur_y;
+    // Coordinate / address / status mux
+    logic [7:0] curr_addr;
+    logic [9:0] curr_x, curr_y;
+    logic       curr_st;
 
     always_comb begin
         case (slave_cnt)
             2'd0: begin
-                cur_addr = {SLAVE_ADDR_1, 1'b0};
-                cur_x = r_x;
-                cur_y = r_y;
+                curr_addr = {SLAVE_ADDR_1, 1'b0};
+                curr_x = red_x;
+                curr_y = red_y;
+                curr_st = red_st;
             end
             2'd1: begin
-                cur_addr = {SLAVE_ADDR_2, 1'b0};
-                cur_x = g_x;
-                cur_y = g_y;
+                curr_addr = {SLAVE_ADDR_2, 1'b0};
+                curr_x = green_x;
+                curr_y = green_y;
+                curr_st = green_st;
             end
             2'd2: begin
-                cur_addr = {SLAVE_ADDR_3, 1'b0};
-                cur_x = b_x;
-                cur_y = b_y;
+                curr_addr = {SLAVE_ADDR_3, 1'b0};
+                curr_x = b_x;
+                curr_y = b_y;
+                curr_st = blue_st;
             end
             default: begin
-                cur_addr = 8'h00;
-                cur_x = 0;
-                cur_y = 0;
+                curr_addr = 8'h00;
+                curr_x = 0;
+                curr_y = 0;
+                curr_st = 0;
             end
         endcase
     end
@@ -88,16 +99,17 @@ module serializer_fsm #(
 
     always_comb begin
         case (cmd_cnt)
-            3'd1:    cmd_data = cur_addr;
-            3'd2:    cmd_data = {6'b0, cur_x[9:8]};
-            3'd3:    cmd_data = cur_x[7:0];
-            3'd4:    cmd_data = {6'b0, cur_y[9:8]};
-            3'd5:    cmd_data = cur_y[7:0];
+            3'd1:    cmd_data = curr_addr;
+            3'd2:    cmd_data = {7'b0, curr_st};
+            3'd3:    cmd_data = {6'b0, curr_x[9:8]};
+            3'd4:    cmd_data = curr_x[7:0];
+            3'd5:    cmd_data = {6'b0, curr_y[9:8]};
+            3'd6:    cmd_data = curr_y[7:0];
             default: cmd_data = 8'h00;
         endcase
     end
 
-    // Done signal for current command
+    // Done signal for currrent command
     logic cmd_done;
     assign cmd_done = (cmd_is_start || cmd_is_stop) ? tx_ready : tx_done;
 
@@ -106,12 +118,15 @@ module serializer_fsm #(
             state     <= S_IDLE;
             slave_cnt <= 0;
             cmd_cnt   <= 0;
-            r_x       <= 0;
-            r_y       <= 0;
-            g_x       <= 0;
-            g_y       <= 0;
+            red_x     <= 0;
+            red_y     <= 0;
+            green_x   <= 0;
+            green_y   <= 0;
             b_x       <= 0;
             b_y       <= 0;
+            red_st    <= 0;
+            green_st  <= 0;
+            blue_st   <= 0;
             i2c_en    <= 0;
             i2c_start <= 0;
             i2c_stop  <= 0;
@@ -121,12 +136,15 @@ module serializer_fsm #(
                 S_IDLE: begin
                     i2c_en <= 0;
                     if (start) begin
-                        r_x       <= r_target_x;
-                        r_y       <= r_target_y;
-                        g_x       <= g_target_x;
-                        g_y       <= g_target_y;
+                        red_x     <= r_target_x;
+                        red_y     <= r_target_y;
+                        green_x   <= g_target_x;
+                        green_y   <= g_target_y;
                         b_x       <= b_target_x;
                         b_y       <= b_target_y;
+                        red_st    <= r_status;
+                        green_st  <= g_status;
+                        blue_st   <= b_status;
                         slave_cnt <= 0;
                         cmd_cnt   <= 0;
                         state     <= S_SEND;
@@ -153,7 +171,7 @@ module serializer_fsm #(
 
                 S_WAIT_DONE: begin
                     if (cmd_done) begin
-                        if (cmd_cnt == 3'd6) begin
+                        if (cmd_cnt == 3'd7) begin
                             if (slave_cnt == 2'd2) state <= S_IDLE;
                             else begin
                                 slave_cnt <= slave_cnt + 1;

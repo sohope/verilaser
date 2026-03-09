@@ -9,8 +9,8 @@ module top_VGA_OV7670 (
     input  logic       href,
     input  logic       vsync,
     input  logic [7:0] data,
-    output logic       scl,
-    inout  wire        sda,
+    output logic       sccb_scl,
+    inout  wire        sccb_sda,
     //vga port side
     output logic       h_sync,
     output logic       v_sync,
@@ -108,8 +108,8 @@ module top_VGA_OV7670 (
     ) U_INIT_CONTROLLER (
         .clk  (clk_100m),
         .reset(reset),
-        .sda  (sda),
-        .scl  (scl)
+        .sda  (sccb_sda),
+        .scl  (sccb_scl)
     );
 
     HSV_Converter u_HSV_Converter (
@@ -174,6 +174,7 @@ module top_VGA_OV7670 (
     logic [9:0] w_r_target_x, w_r_target_y;
     logic [9:0] w_g_target_x, w_g_target_y;
     logic [9:0] w_b_target_x, w_b_target_y;
+    logic       r_status, g_status, b_status;
     logic w_done;
 
     Centroid u_Centroid (
@@ -192,9 +193,9 @@ module top_VGA_OV7670 (
         .b_target_x(w_b_target_x),
         .b_target_y(w_b_target_y),
         .done      (w_done),
-        .r_status(),
-        .g_status(),
-        .b_status()
+        .r_status  (r_status),
+        .g_status  (g_status),
+        .b_status  (b_status)
     );
 
     logic [11:0] w_camera_rgb;
@@ -211,9 +212,9 @@ module top_VGA_OV7670 (
         .g_target_y(w_g_target_y),
         .b_target_x(w_b_target_x),
         .b_target_y(w_b_target_y),
-        .red_blob(w_red_blob),
+        .red_blob  (w_red_blob),
         .green_blob(w_green_blob),
-        .blue_blob(w_blue_blob),
+        .blue_blob (w_blue_blob),
         .vga_rgb   (w_vga_rgb)
     );
 
@@ -222,9 +223,9 @@ module top_VGA_OV7670 (
     assign port_blue  = w_DE ? w_vga_rgb[3:0] : 4'd0;
 
     // I2C serializer + master (clk_100m domain)
-    wire       w_i2c_en, w_i2c_start, w_i2c_stop, w_i2c_nack;
+    wire w_i2c_en, w_i2c_start, w_i2c_stop, w_i2c_nack;
     wire [7:0] w_i2c_tx_data;
-    wire       w_i2c_tx_done, w_i2c_tx_ready;
+    wire w_i2c_tx_done, w_i2c_tx_ready;
     wire [7:0] w_i2c_rx_data;
     wire       w_i2c_rx_done;
 
@@ -242,6 +243,9 @@ module top_VGA_OV7670 (
         .g_target_y(w_g_target_y),
         .b_target_x(w_b_target_x),
         .b_target_y(w_b_target_y),
+        .r_status  (r_status),
+        .g_status  (g_status),
+        .b_status  (b_status),
         .i2c_en    (w_i2c_en),
         .i2c_start (w_i2c_start),
         .i2c_stop  (w_i2c_stop),
