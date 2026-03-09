@@ -22,8 +22,8 @@ module Blob_Filter (
     logic [2:0] color_in;
     assign color_in = {red_detect, green_detect, blue_detect};
 
-    logic [2:0] line_buf1[0:319];
-    logic [2:0] line_buf2[0:319];
+    logic [2:0] line_buf1[0:639];
+    logic [2:0] line_buf2[0:639];
 
     logic [2:0] w11, w12, w13;
     logic [2:0] w21, w22, w23;
