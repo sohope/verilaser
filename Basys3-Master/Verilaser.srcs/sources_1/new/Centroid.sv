@@ -17,8 +17,18 @@ module Centroid (
     output logic [9:0] g_target_y,
     output logic [9:0] b_target_x,
     output logic [9:0] b_target_y,
-    output logic       done
+    output logic       done,
+
+    output logic r_status,
+    output logic g_status,
+    output logic b_status
+
 );
+
+    localparam IMG_WIDTH = 320;
+    localparam IMG_HEIGHT = 240;
+    localparam TARGET_PERCENT = 1;
+    localparam THRESHOLD = (IMG_WIDTH * IMG_HEIGHT * TARGET_PERCENT) / 100;
 
     logic [31:0] r_sum_x, r_sum_y;
     logic [31:0] g_sum_x, g_sum_y;
@@ -28,10 +38,10 @@ module Centroid (
     logic [19:0] b_count;
 
     logic frame_done;
-    assign frame_done = (x_in == 319 && y_in == 239 && DE_in);
+    assign frame_done = (x_in == (IMG_WIDTH -1) && y_in == (IMG_HEIGHT - 1) && DE_in);
 
     logic q1_active;
-    assign q1_active = DE_in && (x_in < 320) && (y_in < 240);
+    assign q1_active = DE_in && (x_in < IMG_WIDTH) && (y_in < IMG_HEIGHT);
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset) begin
@@ -45,18 +55,35 @@ module Centroid (
             g_count <= 0;
             b_count <= 0;
         end else if (frame_done) begin
-            if (r_count > 0) begin
+            if (r_count > THRESHOLD) begin
                 r_target_x <= r_sum_x / r_count;
                 r_target_y <= r_sum_y / r_count;
+                r_status   <= 1'b1;
+            end else begin
+                r_target_x <= 0;
+                r_target_y <= 0;
+                r_status   <= 1'b0;
             end
-            if (g_count > 0) begin
+            if (g_count > THRESHOLD) begin
                 g_target_x <= g_sum_x / g_count;
                 g_target_y <= g_sum_y / g_count;
+                g_status   <= 1'b1;
+            end else begin
+                g_target_x <= 0;
+                g_target_y <= 0;
+                g_status   <= 1'b0;
             end
-            if (b_count > 0) begin
+
+            if (b_count > THRESHOLD) begin
                 b_target_x <= b_sum_x / b_count;
                 b_target_y <= b_sum_y / b_count;
+                b_status   <= 1'b1;
+            end else begin
+                b_target_x <= 0;
+                b_target_y <= 0;
+                b_status   <= 1'b0;
             end
+
             done    <= 1;
             r_sum_x <= 0;
             r_sum_y <= 0;

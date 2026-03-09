@@ -188,7 +188,10 @@ module top_VGA_OV7670 (
         .g_target_y(w_g_target_y),
         .b_target_x(w_b_target_x),
         .b_target_y(w_b_target_y),
-        .done      (w_done)
+        .done      (w_done),
+        .r_status(),
+        .g_status(),
+        .b_status()
     );
 
     logic [11:0] w_camera_rgb;
