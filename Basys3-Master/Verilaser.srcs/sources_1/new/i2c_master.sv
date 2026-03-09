@@ -1,50 +1,52 @@
 `timescale 1ns / 1ps
 
 module i2c_master (
-    input  wire       clk,
-    input  wire       reset,
-    input  wire       i2c_en,
-    input  wire       i2c_start,
-    input  wire       i2c_stop,
-    input  wire       i2c_nack,
-    input  wire [7:0] tx_data,
-    output wire       tx_done,
-    output wire       tx_ready,
-    output wire [7:0] rx_data,
-    output wire       rx_done,
-    output wire       scl,
-    inout  wire       sda
+    input  logic       clk,
+    input  logic       reset,
+    input  logic       i2c_en,
+    input  logic       i2c_start,
+    input  logic       i2c_stop,
+    input  logic       i2c_nack,
+    input  logic [7:0] tx_data,
+    output logic       tx_done,
+    output logic       tx_ready,
+    output logic [7:0] rx_data,
+    output logic       rx_done,
+    output logic       scl,
+    inout  wire        sda
 );
 
     // 2-stage synchronizer for CDC (cross-board)
-    wire sda_sync;
+    logic sda_sync;
 
     sync_2ff #(.INIT(1'b1)) u_sda_sync (
         .clk(clk), .reset(reset), .d(sda), .q(sda_sync)
     );
 
-    reg sda_reg, sda_next;
-    reg sda_oen_reg, sda_oen_next;
+    logic sda_reg, sda_next;
+    logic sda_oen_reg, sda_oen_next;
 
     assign sda = sda_oen_reg ? sda_reg : 1'bz;
 
-    localparam IDLE      = 3'h0;
-    localparam START     = 3'h1;
-    localparam STOP      = 3'h2;
-    localparam WRITE     = 3'h3;
-    localparam READ      = 3'h4;
-    localparam ACK_WRITE = 3'h5;
-    localparam ACK_READ  = 3'h6;
+    typedef enum logic [2:0] {
+        IDLE,
+        START,
+        STOP,
+        WRITE,
+        READ,
+        ACK_WRITE,
+        ACK_READ
+    } state_e;
 
-    reg [2:0] state, state_next;
-    reg [9:0] clk_cnt_reg, clk_cnt_next;
-    reg [7:0] tx_data_reg, tx_data_next;
-    reg [7:0] rx_data_reg, rx_data_next;
-    reg [2:0] bit_cnt_reg, bit_cnt_next;
-    reg scl_reg, scl_next;
-    reg tx_done_reg, tx_done_next;
-    reg rx_done_reg, rx_done_next;
-    reg i2c_nack_reg, i2c_nack_next;
+    state_e state, state_next;
+    logic [9:0] clk_cnt_reg, clk_cnt_next;
+    logic [7:0] tx_data_reg, tx_data_next;
+    logic [7:0] rx_data_reg, rx_data_next;
+    logic [2:0] bit_cnt_reg, bit_cnt_next;
+    logic scl_reg, scl_next;
+    logic tx_done_reg, tx_done_next;
+    logic rx_done_reg, rx_done_next;
+    logic i2c_nack_reg, i2c_nack_next;
 
     assign scl = scl_reg;
     assign tx_done = tx_done_reg;
@@ -52,7 +54,7 @@ module i2c_master (
     assign rx_data = rx_data_reg;
     assign rx_done = rx_done_reg;
 
-    always @(posedge clk, posedge reset) begin
+    always_ff @(posedge clk, posedge reset) begin
         if (reset) begin
             state        <= IDLE;
             clk_cnt_reg  <= 0;
@@ -80,7 +82,7 @@ module i2c_master (
         end
     end
 
-    always @(*) begin
+    always_comb begin
         state_next    = state;
         clk_cnt_next  = clk_cnt_reg;
         tx_data_next  = tx_data_reg;
@@ -226,6 +228,9 @@ module i2c_master (
                         end
                     end
                 end
+            end
+            default: begin
+                state_next = IDLE;
             end
         endcase
     end
