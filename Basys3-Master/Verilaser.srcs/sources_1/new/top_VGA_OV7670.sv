@@ -16,7 +16,10 @@ module top_VGA_OV7670 (
     output logic       v_sync,
     output logic [3:0] port_red,
     output logic [3:0] port_green,
-    output logic [3:0] port_blue
+    output logic [3:0] port_blue,
+    // I2C for STM32 (Pmod JA)
+    output logic       i2c_scl,
+    inout  wire        i2c_sda
 );
     logic                         clk_100m;
     logic [                  9:0] x_pixel;
@@ -211,4 +214,50 @@ module top_VGA_OV7670 (
     assign port_red   = w_DE ? w_vga_rgb[11:8] : 4'd0;
     assign port_green = w_DE ? w_vga_rgb[7:4] : 4'd0;
     assign port_blue  = w_DE ? w_vga_rgb[3:0] : 4'd0;
+
+    // I2C serializer + master (clk_100m domain)
+    wire       w_i2c_en, w_i2c_start, w_i2c_stop, w_i2c_nack;
+    wire [7:0] w_i2c_tx_data;
+    wire       w_i2c_tx_done, w_i2c_tx_ready;
+    wire [7:0] w_i2c_rx_data;
+    wire       w_i2c_rx_done;
+
+    i2c_serializer #(
+        .SLAVE_ADDR_1(7'h10),
+        .SLAVE_ADDR_2(7'h11),
+        .SLAVE_ADDR_3(7'h12)
+    ) u_i2c_serializer (
+        .clk       (clk_100m),
+        .reset     (reset),
+        .done      (w_done),
+        .r_target_x(w_r_target_x),
+        .r_target_y(w_r_target_y),
+        .g_target_x(w_g_target_x),
+        .g_target_y(w_g_target_y),
+        .b_target_x(w_b_target_x),
+        .b_target_y(w_b_target_y),
+        .i2c_en    (w_i2c_en),
+        .i2c_start (w_i2c_start),
+        .i2c_stop  (w_i2c_stop),
+        .i2c_nack  (w_i2c_nack),
+        .tx_data   (w_i2c_tx_data),
+        .tx_done   (w_i2c_tx_done),
+        .tx_ready  (w_i2c_tx_ready)
+    );
+
+    i2c_master u_i2c_master (
+        .clk      (clk_100m),
+        .reset    (reset),
+        .i2c_en   (w_i2c_en),
+        .i2c_start(w_i2c_start),
+        .i2c_stop (w_i2c_stop),
+        .i2c_nack (w_i2c_nack),
+        .tx_data  (w_i2c_tx_data),
+        .tx_done  (w_i2c_tx_done),
+        .tx_ready (w_i2c_tx_ready),
+        .rx_data  (w_i2c_rx_data),
+        .rx_done  (w_i2c_rx_done),
+        .scl      (i2c_scl),
+        .sda      (i2c_sda)
+    );
 endmodule
