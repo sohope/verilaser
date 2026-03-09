@@ -93,6 +93,7 @@ const osMessageQueueAttr_t Queue_I2C_attributes = {
 uint8_t i2c_rx_buffer[5];
 volatile uint32_t i2c_rx_count = 0;
 volatile uint32_t i2c_err_count = 0;
+volatile TargetData_t last_rx_data;
 char uart_buf[128];
 /* USER CODE END PV */
 
@@ -449,6 +450,7 @@ void HAL_I2C_SlaveRxCpltCallback(I2C_HandleTypeDef *hi2c)
 		txData.x = (i2c_rx_buffer[1] << 8) | i2c_rx_buffer[2];
 		txData.y = (i2c_rx_buffer[3] << 8) | i2c_rx_buffer[4];
 
+		last_rx_data = txData;
 		osMessageQueuePut(Queue_I2CHandle, &txData, 0, 0);
 		HAL_I2C_Slave_Receive_IT(&hi2c1, i2c_rx_buffer, 5);
 	}
@@ -499,9 +501,6 @@ void Servo_Task(void *argument)
   {
 	if(osMessageQueueGet(Queue_I2CHandle, &rxData, NULL, osWaitForever) == osOK)
 	{
-		int len = sprintf(uart_buf, "[RX] x=%u y=%u st=%u\r\n", rxData.x, rxData.y, rxData.status);
-		HAL_UART_Transmit(&huart2, (uint8_t*)uart_buf, len, 10);
-
 		if(rxData.status == 1)
 		{
 			Servo_Track(rxData.x, rxData.y);
@@ -542,10 +541,11 @@ void I2C_Task(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    int len = sprintf(uart_buf, "[MON] rx=%lu err=%lu i2c_state=0x%02X\r\n",
-                      i2c_rx_count, i2c_err_count, (unsigned int)hi2c1.State);
-    HAL_UART_Transmit(&huart2, (uint8_t*)uart_buf, len, 10);
-    osDelay(2000);
+    int len = sprintf(uart_buf, "[MON] rx=%lu err=%lu x=%u y=%u st=%u\r\n",
+                      i2c_rx_count, i2c_err_count,
+                      last_rx_data.x, last_rx_data.y, last_rx_data.status);
+    HAL_UART_Transmit(&huart2, (uint8_t*)uart_buf, len, 100);
+    osDelay(500);
   }
   /* USER CODE END I2C_Task */
 }
