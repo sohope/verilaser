@@ -56,6 +56,6 @@ Thumbs.db
 # Temporary Files
 *.temp
 
-# CubeIDE Workspace Files
-.cproject
-.project
+# # CubeIDE Workspace Files
+# .cproject
+# .project
