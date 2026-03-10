@@ -61,7 +61,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t Task_ServoHandle;
 const osThreadAttr_t Task_Servo_attributes = {
   .name = "Task_Servo",
-  .stack_size = 128 * 4,
+  .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for Task_Laser */
@@ -478,26 +478,28 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  TargetData_t fakeData;
-  fakeData.y = 120;       // Y는 중앙 고정
-  fakeData.status = 1;    // 타겟 발견 상태로 고정
+  //   TargetData_t fakeData;
+  // fakeData.y = 120;       // Y는 중앙 고정
+  // fakeData.status = 1;    // 타겟 발견 상태로 고정
 
-  uint16_t test_x = 160;  // 초기 x 좌표 (중앙)
+  // uint16_t test_x = 160;  // 초기 x 좌표 (중앙)
 
-  static int dir = 1; // 1이면 증가, -1이면 감소
+  // static int dir = 1; // 1이면 증가, -1이면 감소
 
-    for(;;)
-    {
-        test_x += (dir * 15); // 5픽셀씩 이동 (숫자를 키우면 빨라짐)
+  for(;;)
+  {
+        // test_x += (dir * 15); // 5픽셀씩 이동 (숫자를 키우면 빨라짐)
 
-        if(test_x >= 260) dir = -1; // 끝에 도달하면 방향 반전
-        if(test_x <= 60)  dir = 1;  // 반대쪽 끝 도달 시 방향 반전
+        // if(test_x >= 260) dir = -1; // 끝에 도달하면 방향 반전
+        // if(test_x <= 60)  dir = 1;  // 반대쪽 끝 도달 시 방향 반전
 
-        fakeData.x = test_x;
-        osMessageQueuePut(Queue_I2CHandle, &fakeData, 0, osWaitForever);
+        // fakeData.x = test_x;
+        // osMessageQueuePut(Queue_I2CHandle, &fakeData, 0, osWaitForever);
 
-        osDelay(10); // 0.05초 대기 (더 부드럽게 윙~ 하고 움직임)
-    }
+        // osDelay(10); // 0.05초 대기 (더 부드럽게 윙~ 하고 움직임)
+
+    osDelay(1000);
+  }
   /* USER CODE END 5 */
 }
 
