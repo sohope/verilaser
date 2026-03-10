@@ -13,7 +13,7 @@
 
 /* 외부 참조 */
 extern ADC_HandleTypeDef  hadc1;
-extern osMessageQueueId_t Queue_I2CHandle;
+extern osMessageQueueId_t Queue_JoyHandle;
 
 /* ── ADC DMA 버퍼: uint32_t 사용 ─────────────────────
  *   HAL_ADC_Start_DMA() 세 번째 인자가 uint32_t* 이므로
@@ -40,7 +40,7 @@ void StartTask_Joystick(void *argument)
         joy_coord.center_y = (uint16_t)((adc_val[1] / 4095.0f) * 239.0f);
 
         /* Queue에 전송 (Task_Servo가 꺼내 씀) */
-        osMessageQueuePut(Queue_I2CHandle, &joy_coord, 0, 10);
+        osMessageQueuePut(Queue_JoyHandle, &joy_coord, 0, 10);
 
         osDelay(20);   /* 50Hz */
     }

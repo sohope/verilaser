@@ -9,24 +9,21 @@
 #define INC_I2C_H_
 
 #include <stdint.h>
+#include "cmsis_os.h"   /* ← 추가 */
 
-/* ── 태스크 간 공유 구조체 ──────────────────────────── */
 typedef struct {
-    uint8_t  mode;        /* 0=수동, 1=격자, 2=추적 */
-    uint8_t  blob_valid;  /* 0=객체없음, 1=객체있음  */
-    uint16_t center_x;    /* 0 ~ 319                 */
-    uint8_t  center_y;    /* 0 ~ 239                 */
+    uint8_t  mode;
+    uint8_t  blob_valid;
+    uint16_t center_x;
+    uint8_t  center_y;
 } Coord_t;
+
+extern osMessageQueueId_t Queue_I2CHandle;   /* ← 추가 */
+extern osMessageQueueId_t Queue_JoyHandle;   /* ← 추가 */
 
 void StartTask_I2C(void *argument);
 
-#endif /* I2C_H */
-
-
-
-
-
-
+#endif /* INC_I2C_H_ */
 
 
 

@@ -11,7 +11,7 @@
 /* ── 외부 참조 ─────────────────────────────────────── */
 extern TIM_HandleTypeDef  htim3;
 extern osMessageQueueId_t Queue_I2CHandle;
-
+extern osMessageQueueId_t Queue_JoyHandle;
 /* ── 조준완료 플래그 ────── */
 volatile uint8_t aimed_flag = 0;
 
@@ -47,30 +47,23 @@ void StartTask_Servo(void *argument)
 
     for (;;)
     {
-        /* [1] Queue에서 데이터 대기 */
-        if (osMessageQueueGet(Queue_I2CHandle, &coord, NULL, osWaitForever) != osOK)
-            continue;
-
-        /* [2] 데이터 유효성 검사 */
-        if (!coord.blob_valid)
+        /* ① I2C(카메라) 우선 확인 - 논블로킹 */
+        if (osMessageQueueGet(Queue_I2CHandle, &coord, NULL, 0) == osOK)
         {
-            aimed_flag = 0;
+            if (coord.blob_valid)
+                Servo_Control_Logic(coord.center_x, coord.center_y);
+            else
+                aimed_flag = 0;
             continue;
         }
 
-        /* [3] 모드별 처리 */
-        switch (coord.mode)
+        /* ② I2C 없으면 조이스틱 대기 - 20ms */
+        if (osMessageQueueGet(Queue_JoyHandle, &coord, NULL, 20) == osOK)
         {
-            case 0:  /* 수동(조이스틱) 모드 */
+            if (coord.blob_valid)
                 Servo_Control_Logic(coord.center_x, coord.center_y);
-                break;
-
-            case 2:  /* 완전추적(카메라) 모드 - 현재는 조이스틱으로 테스트 중 */
-                Servo_Control_Logic(coord.center_x, coord.center_y);
-                break;
-
-            default:
-                break;
+            else
+                aimed_flag = 0;
         }
     }
 }

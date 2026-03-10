@@ -67,6 +67,12 @@ void Error_Handler(void);
 #define USART_RX_GPIO_Port GPIOA
 #define LD2_Pin GPIO_PIN_5
 #define LD2_GPIO_Port GPIOA
+#define Btn_fire_Pin GPIO_PIN_13
+#define Btn_fire_GPIO_Port GPIOB
+#define Led_fire_Pin GPIO_PIN_14
+#define Led_fire_GPIO_Port GPIOB
+#define Btn_mode_Pin GPIO_PIN_15
+#define Btn_mode_GPIO_Port GPIOB
 #define Buzzer_Pin GPIO_PIN_9
 #define Buzzer_GPIO_Port GPIOC
 #define Laser_Pin GPIO_PIN_8
