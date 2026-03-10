@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 module sync_2ff #(
-    parameter INIT = 1'b1
+    parameter INIT = 1'b0
 ) (
     input  wire clk,
     input  wire reset,

@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module cmd_generator #(
+module serializer #(
     parameter [6:0] SLAVE_ADDR_1 = 7'h10,
     parameter [6:0] SLAVE_ADDR_2 = 7'h11,
     parameter [6:0] SLAVE_ADDR_3 = 7'h12

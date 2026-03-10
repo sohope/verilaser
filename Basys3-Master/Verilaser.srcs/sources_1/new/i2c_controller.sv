@@ -57,12 +57,12 @@ module i2c_controller #(
     logic cmd_is_start, cmd_is_stop;
     logic [7:0] cmd_data;
 
-    // Command generator: decides what to send
-    cmd_generator #(
+    // Serializer: parallel coordinates -> serial I2C commands
+    serializer #(
         .SLAVE_ADDR_1(SLAVE_ADDR_1),
         .SLAVE_ADDR_2(SLAVE_ADDR_2),
         .SLAVE_ADDR_3(SLAVE_ADDR_3)
-    ) u_cmd_gen (
+    ) u_serializer (
         .clk        (clk),
         .reset      (reset),
         .start      (done_rise),
@@ -82,8 +82,8 @@ module i2c_controller #(
         .cmd_ready   (cmd_ready)
     );
 
-    // Serializer FSM: handles I2C handshake
-    serializer_fsm u_fsm (
+    // I2C driver: handles I2C handshake
+    i2c_driver u_i2c_driver (
         .clk         (clk),
         .reset       (reset),
         .cmd_valid   (cmd_valid),

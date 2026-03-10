@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module serializer_fsm (
+module i2c_driver (
     input  logic       clk,
     input  logic       reset,
     // Command input (valid/ready handshake)
@@ -64,15 +64,19 @@ module serializer_fsm (
                 end
             end
 
+            // 마스터가 데이터를 가져간 직후 상태
+            // i2c_en 펄스를 1클럭만 주고 내리면 tx_data, i2c_start, i2c_stop을 랫칭함
             S_LATCH: begin
                 if (is_start_r || is_stop_r) state_next = S_WAIT_BUSY;
                 else state_next = S_WAIT_DONE;
             end
 
+            // 마스터가 실제로 일을 시작했는지를 확인하는 상태
             S_WAIT_BUSY: begin
                 if (!tx_ready) state_next = S_WAIT_DONE;
             end
 
+            // 마스터가 일을 끝냈는지를 확인하는 상태
             S_WAIT_DONE: begin
                 if (cmd_done) begin
                     cmd_ready_next = 1'b1;
