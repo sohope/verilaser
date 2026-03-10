@@ -52,30 +52,51 @@ module i2c_serializer #(
         .both_edge()
     );
 
-    // FSM
-    serializer_fsm #(
+    // Internal handshake
+    logic cmd_valid, cmd_ready;
+    logic cmd_is_start, cmd_is_stop;
+    logic [7:0] cmd_data;
+
+    // Command generator: decides what to send
+    cmd_generator #(
         .SLAVE_ADDR_1(SLAVE_ADDR_1),
         .SLAVE_ADDR_2(SLAVE_ADDR_2),
         .SLAVE_ADDR_3(SLAVE_ADDR_3)
-    ) u_fsm (
-        .clk       (clk),
-        .reset     (reset),
-        .start     (done_rise),
-        .r_target_x(r_target_x),
-        .r_target_y(r_target_y),
-        .g_target_x(g_target_x),
-        .g_target_y(g_target_y),
-        .b_target_x(b_target_x),
-        .b_target_y(b_target_y),
-        .r_status  (r_status),
-        .g_status  (g_status),
-        .b_status  (b_status),
-        .i2c_en    (i2c_en),
-        .i2c_start (i2c_start),
-        .i2c_stop  (i2c_stop),
-        .tx_data   (tx_data),
-        .tx_done   (tx_done),
-        .tx_ready  (tx_ready)
+    ) u_cmd_gen (
+        .clk        (clk),
+        .reset      (reset),
+        .start      (done_rise),
+        .r_target_x (r_target_x),
+        .r_target_y (r_target_y),
+        .g_target_x (g_target_x),
+        .g_target_y (g_target_y),
+        .b_target_x (b_target_x),
+        .b_target_y (b_target_y),
+        .r_status   (r_status),
+        .g_status   (g_status),
+        .b_status   (b_status),
+        .cmd_valid   (cmd_valid),
+        .cmd_is_start(cmd_is_start),
+        .cmd_is_stop (cmd_is_stop),
+        .cmd_data    (cmd_data),
+        .cmd_ready   (cmd_ready)
+    );
+
+    // Serializer FSM: handles I2C handshake
+    serializer_fsm u_fsm (
+        .clk         (clk),
+        .reset       (reset),
+        .cmd_valid   (cmd_valid),
+        .cmd_is_start(cmd_is_start),
+        .cmd_is_stop (cmd_is_stop),
+        .cmd_data    (cmd_data),
+        .cmd_ready   (cmd_ready),
+        .i2c_en      (i2c_en),
+        .i2c_start   (i2c_start),
+        .i2c_stop    (i2c_stop),
+        .tx_data     (tx_data),
+        .tx_done     (tx_done),
+        .tx_ready    (tx_ready)
     );
 
 endmodule
