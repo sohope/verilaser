@@ -600,9 +600,22 @@ void StartTask02(void *argument)
 void StartTask03(void *argument)
 {
   /* USER CODE BEGIN StartTask03 */
+  uint8_t btn_prev = 1;
+
   for (;;)
   {
-    /* Btn_fire(PB13) ?��르는 ?��?�� Led_fire(PB14) ON, ?���? OFF */
+    /* ── Btn_mode(PB15) 토글 ── */
+    uint8_t btn_now = HAL_GPIO_ReadPin(Btn_mode_GPIO_Port, Btn_mode_Pin);
+    if (btn_prev == 1 && btn_now == 0)
+    {
+      g_mode ^= 1;
+      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin,
+                        g_mode ? GPIO_PIN_SET : GPIO_PIN_RESET);
+      osDelay(50);   /* 디바운싱 */
+    }
+    btn_prev = btn_now;
+
+    /* ── Btn_fire(PB13) 누르는 동안 Led_fire(PB14) ON ── */
     if (HAL_GPIO_ReadPin(Btn_fire_GPIO_Port, Btn_fire_Pin) == GPIO_PIN_RESET)
       HAL_GPIO_WritePin(Led_fire_GPIO_Port, Led_fire_Pin, GPIO_PIN_SET);
     else

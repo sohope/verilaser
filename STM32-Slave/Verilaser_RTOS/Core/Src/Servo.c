@@ -12,6 +12,7 @@
 extern TIM_HandleTypeDef  htim3;
 extern osMessageQueueId_t Queue_I2CHandle;
 extern osMessageQueueId_t Queue_JoyHandle;
+extern volatile uint8_t g_mode;   /* ← 추가 */
 /* ── 조준완료 플래그 ────── */
 volatile uint8_t aimed_flag = 0;
 
@@ -20,16 +21,20 @@ static float current_pan  = 90.0f;   /* 초기값: 중립 */
 static float current_tilt = 90.0f;
 
 /* ── 상수 설정 ─────────────────────────────────────── */
+#define TEST_X  100    /* ← 원하는 좌표로 바꾸세요 */
+#define TEST_Y  60
+
 #define SCREEN_CX    160
 #define SCREEN_CY    120
 #define DEADZONE_JOY 15      /* 조이스틱 중앙부 불감대 (떨림 방지) */
 #define JOY_GAIN     0.05f   /* 조이스틱 이동 속도 (숫자가 커질수록 빨라짐) */
+#define AUTO_GAIN    0.5f   /* 자동 추적 속도 ← 원하는 값으로 조절 */
 #define CCR_MIN      1000
 #define CCR_MAX      2000
 
 /* ── 내부 함수 선언 ─────────────────────────────────── */
 static void Servo_SetAngle(float pan, float tilt);
-static void Servo_Control_Logic(uint16_t cx, uint16_t cy);
+static void Servo_Control_Logic(uint16_t cx, uint16_t cy, float gain);
 
 /* ════════════════════════════════════════════════════
  * Task_Servo 본체
@@ -45,25 +50,45 @@ void StartTask_Servo(void *argument)
     /* 초기 중립 위치 설정 */
     Servo_SetAngle(current_pan, current_tilt);
 
+//    for (;;)
+//    {
+//        /* ① I2C(카메라) 우선 확인 - 논블로킹 */
+//        if (osMessageQueueGet(Queue_I2CHandle, &coord, NULL, 0) == osOK)
+//        {
+//            if (coord.blob_valid)
+//                Servo_Control_Logic(coord.center_x, coord.center_y);
+//            else
+//                aimed_flag = 0;
+//            continue;
+//        }
+//
+//        /* ② I2C 없으면 조이스틱 대기 - 20ms */
+//        if (osMessageQueueGet(Queue_JoyHandle, &coord, NULL, 20) == osOK)
+//        {
+//            if (coord.blob_valid)
+//                Servo_Control_Logic(coord.center_x, coord.center_y);
+//            else
+//                aimed_flag = 0;
+//        }
+//    }
     for (;;)
     {
-        /* ① I2C(카메라) 우선 확인 - 논블로킹 */
-        if (osMessageQueueGet(Queue_I2CHandle, &coord, NULL, 0) == osOK)
+        if (g_mode == 0)
         {
-            if (coord.blob_valid)
-                Servo_Control_Logic(coord.center_x, coord.center_y);
-            else
-                aimed_flag = 0;
-            continue;
+            /* ── 수동 모드: 조이스틱 Queue ── */
+            if (osMessageQueueGet(Queue_JoyHandle, &coord, NULL, 20) == osOK)
+            {
+                if (coord.blob_valid)
+                	Servo_Control_Logic(coord.center_x, coord.center_y, JOY_GAIN);
+                else
+                    aimed_flag = 0;
+            }
         }
-
-        /* ② I2C 없으면 조이스틱 대기 - 20ms */
-        if (osMessageQueueGet(Queue_JoyHandle, &coord, NULL, 20) == osOK)
+        else
         {
-            if (coord.blob_valid)
-                Servo_Control_Logic(coord.center_x, coord.center_y);
-            else
-                aimed_flag = 0;
+            /* ── 자동 모드: 하드코딩 좌표 추적 ── */
+        	Servo_Control_Logic(TEST_X, TEST_Y, AUTO_GAIN);
+            osDelay(33);   /* ~30Hz */
         }
     }
 }
@@ -71,7 +96,7 @@ void StartTask_Servo(void *argument)
 /* ════════════════════════════════════════════════════
  * 조이스틱 입력 → 각도 누적 계산 (Incremental Control)
  * ════════════════════════════════════════════════════ */
-static void Servo_Control_Logic(uint16_t cx, uint16_t cy)
+static void Servo_Control_Logic(uint16_t cx, uint16_t cy, float gain)
 {
     /* [1] 중앙(160, 120)으로부터의 오차 계산 */
     int16_t err_x = (int16_t)cx - SCREEN_CX;
@@ -87,8 +112,8 @@ static void Servo_Control_Logic(uint16_t cx, uint16_t cy)
 
     /* [3] 각도 누적 (조이스틱을 밀고 있는 동안 각도가 계속 변함) */
     /* 방향이 반대라면 -JOY_GAIN으로 수정하세요 */
-    current_pan  += (float)err_x * JOY_GAIN;
-    current_tilt += (float)err_y * JOY_GAIN;
+    current_pan  += (float)err_x * gain;
+    current_tilt += (float)err_y * gain;
 
     /* [4] 각도 제한 (0~180도) */
     if (current_pan < 0.0f)    current_pan = 0.0f;
