@@ -43,8 +43,8 @@ module serializer_fsm #(
 
     logic [9:0] red_x, red_y;
     logic [9:0] green_x, green_y;
-    logic [9:0] b_x, b_y;
-    logic       red_st, green_st, blue_st;
+    logic [9:0] blue_x, blue_y;
+    logic red_st, green_st, blue_st;
 
     // Command sequence per slave:
     //   0: START
@@ -63,7 +63,7 @@ module serializer_fsm #(
     // Coordinate / address / status mux
     logic [7:0] curr_addr;
     logic [9:0] curr_x, curr_y;
-    logic       curr_st;
+    logic curr_st;
 
     always_comb begin
         case (slave_cnt)
@@ -81,8 +81,8 @@ module serializer_fsm #(
             end
             2'd2: begin
                 curr_addr = {SLAVE_ADDR_3, 1'b0};
-                curr_x = b_x;
-                curr_y = b_y;
+                curr_x = blue_x;
+                curr_y = blue_y;
                 curr_st = blue_st;
             end
             default: begin
@@ -122,8 +122,8 @@ module serializer_fsm #(
             red_y     <= 0;
             green_x   <= 0;
             green_y   <= 0;
-            b_x       <= 0;
-            b_y       <= 0;
+            blue_x    <= 0;
+            blue_y    <= 0;
             red_st    <= 0;
             green_st  <= 0;
             blue_st   <= 0;
@@ -140,8 +140,8 @@ module serializer_fsm #(
                         red_y     <= r_target_y;
                         green_x   <= g_target_x;
                         green_y   <= g_target_y;
-                        b_x       <= b_target_x;
-                        b_y       <= b_target_y;
+                        blue_x    <= b_target_x;
+                        blue_y    <= b_target_y;
                         red_st    <= r_status;
                         green_st  <= g_status;
                         blue_st   <= b_status;
