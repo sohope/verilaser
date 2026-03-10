@@ -179,51 +179,68 @@ module top_VGA_OV7670 (
     );
 
 
-    logic [9:0] w_r1_target_x, w_r1_target_y;
-    logic [9:0] w_r2_target_x, w_r2_target_y;
-    logic [9:0] w_g_target_x, w_g_target_y;
-    logic [9:0] w_b_target_x, w_b_target_y;
-    logic w_done_multi, w_done_single;
+    logic [9:0] w_r1_x, w_r1_y, w_r2_x, w_r2_y, w_r3_x, w_r3_y;
+    logic [9:0] w_g1_x, w_g1_y, w_g2_x, w_g2_y, w_g3_x, w_g3_y;
+    logic [9:0] w_b1_x, w_b1_y, w_b2_x, w_b2_y, w_b3_x, w_b3_y;
 
-  
-    Multi_Centroid_Red u_Multi_Centroid_Red (
-        .clk        (rclk),
-        .reset      (reset),
-        .DE_in      (w_DE_o_BF),
-        .x_in       (w_x_out_BF),
-        .y_in       (w_y_out_BF),
-        .red_blob   (w_red_blob),
-        .r1_target_x(w_r1_target_x),
-        .r1_target_y(w_r1_target_y),
-        .r1_status  (),
-        .r2_target_x(w_r2_target_x),
-        .r2_target_y(w_r2_target_y),
-        .r2_status  (),
-        .done       (w_done_multi)
-    );
-
-    logic [9:0]
-        ignored_r_x,
-        ignored_r_y; 
-    Centroid u_Centroid_GB (
+    // red channel centroid tracker
+    Multi_Centroid u_Tracker_Red (
         .clk(rclk),
         .reset(reset),
         .DE_in(w_DE_o_BF),
         .x_in(w_x_out_BF),
         .y_in(w_y_out_BF),
-        .red_blob(1'b0),  
-        .green_blob(w_green_blob),
-        .blue_blob(w_blue_blob),
-        .r_target_x(ignored_r_x),  
-        .r_target_y(ignored_r_y),  
-        .g_target_x(w_g_target_x),  
-        .g_target_y(w_g_target_y),
-        .b_target_x(w_b_target_x),  
-        .b_target_y(w_b_target_y),
-        .done(w_done_single),
-        .r_status(),
-        .g_status(),
-        .b_status()
+        .blob_in(w_red_blob),  // input red_blob
+        .t1_target_x(w_r1_x),
+        .t1_target_y(w_r1_y),
+        .t1_status(),
+        .t2_target_x(w_r2_x),
+        .t2_target_y(w_r2_y),
+        .t2_status(),
+        .t3_target_x(w_r3_x),
+        .t3_target_y(w_r3_y),
+        .t3_status(),
+        .done()
+    );
+
+    // green channel centroid tracker
+    Multi_Centroid u_Tracker_Green (
+        .clk(rclk),
+        .reset(reset),
+        .DE_in(w_DE_o_BF),
+        .x_in(w_x_out_BF),
+        .y_in(w_y_out_BF),
+        .blob_in(w_green_blob),  // input green_blob
+        .t1_target_x(w_g1_x),
+        .t1_target_y(w_g1_y),
+        .t1_status(),
+        .t2_target_x(w_g2_x),
+        .t2_target_y(w_g2_y),
+        .t2_status(),
+        .t3_target_x(w_g3_x),
+        .t3_target_y(w_g3_y),
+        .t3_status(),
+        .done()
+    );
+
+    // blue channel centroid tracker
+    Multi_Centroid u_Tracker_Blue (
+        .clk(rclk),
+        .reset(reset),
+        .DE_in(w_DE_o_BF),
+        .x_in(w_x_out_BF),
+        .y_in(w_y_out_BF),
+        .blob_in(w_blue_blob),  // input blue_blob
+        .t1_target_x(w_b1_x),
+        .t1_target_y(w_b1_y),
+        .t1_status(),
+        .t2_target_x(w_b2_x),
+        .t2_target_y(w_b2_y),
+        .t2_status(),
+        .t3_target_x(w_b3_x),
+        .t3_target_y(w_b3_y),
+        .t3_status(),
+        .done()
     );
 
 
@@ -237,19 +254,31 @@ module top_VGA_OV7670 (
         .ROI_Y_MIN(TARGET_Y_MIN),
         .ROI_Y_MAX(TARGET_Y_MAX)
     ) u_display (
-        .vga_x     (w_x_pixel_o),
-        .vga_y     (w_y_pixel_o),
+        .vga_x     (w_x_out_BF),
+        .vga_y     (w_y_out_BF),
         .camera_rgb(w_camera_rgb),
 
-        
-        .r1_target_x(w_r1_target_x),
-        .r1_target_y(w_r1_target_y),
-        .r2_target_x(w_r2_target_x),
-        .r2_target_y(w_r2_target_y),
-        .g_target_x (w_g_target_x),
-        .g_target_y (w_g_target_y),
-        .b_target_x (w_b_target_x),
-        .b_target_y (w_b_target_y),
+
+        .r1_target_x(w_r1_x),
+        .r1_target_y(w_r1_y),
+        .r2_target_x(w_r2_x),
+        .r2_target_y(w_r2_y),
+        .r3_target_x(w_r3_x),
+        .r3_target_y(w_r3_y),
+
+        .g1_target_x(w_g1_x),
+        .g1_target_y(w_g1_y),
+        .g2_target_x(w_g2_x),
+        .g2_target_y(w_g2_y),
+        .g3_target_x(w_g3_x),
+        .g3_target_y(w_g3_y),
+
+        .b1_target_x(w_b1_x),
+        .b1_target_y(w_b1_y),
+        .b2_target_x(w_b2_x),
+        .b2_target_y(w_b2_y),
+        .b3_target_x(w_b3_x),
+        .b3_target_y(w_b3_y),
 
         .red_blob  (w_red_blob),
         .green_blob(w_green_blob),
@@ -257,7 +286,7 @@ module top_VGA_OV7670 (
         .vga_rgb   (w_vga_rgb)
     );
 
-  
+
     assign port_red   = w_DE ? w_vga_rgb[11:8] : 4'd0;
     assign port_green = w_DE ? w_vga_rgb[7:4] : 4'd0;
     assign port_blue  = w_DE ? w_vga_rgb[3:0] : 4'd0;

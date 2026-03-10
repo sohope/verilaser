@@ -25,8 +25,8 @@ module Color_Detect #(
     output logic       blue_detect
 );
 
-    parameter S_MIN = 8'd150;
-    parameter V_MIN = 8'd60;
+    localparam S_MIN = 8'd150;
+    localparam V_MIN = 8'd60;
 
     logic in_roi_sig;
 
@@ -36,16 +36,16 @@ module Color_Detect #(
     assign map_y = (y_in >= 10'd240) ? (y_in - 10'd240) : y_in;
     
 
-    ROI_Filter #(
-        .X_MIN(ROI_X_MIN),
-        .X_MAX(ROI_X_MAX),
-        .Y_MIN(ROI_Y_MIN),
-        .Y_MAX(ROI_Y_MAX)
-    ) u_roi_filter (
-        .x_in  (map_x),
-        .y_in  (map_y),
-        .in_roi(in_roi_sig)
-    );
+    // ROI_Filter #(
+    //     .X_MIN(ROI_X_MIN),
+    //     .X_MAX(ROI_X_MAX),
+    //     .Y_MIN(ROI_Y_MIN),
+    //     .Y_MAX(ROI_Y_MAX)
+    // ) u_roi_filter (
+    //     .x_in  (map_x),
+    //     .y_in  (map_y),
+    //     .in_roi(in_roi_sig)
+    // );
 
 
     always_ff @(posedge clk or posedge reset) begin
@@ -62,7 +62,8 @@ module Color_Detect #(
             x_out  <= x_in;
             y_out  <= y_in;
 
-            if (DE_in && in_roi_sig && (S_in >= S_MIN) && V_in > V_MIN) begin
+            if (DE_in   && (S_in >= S_MIN) && V_in > V_MIN) begin
+            // if (DE_in && in_roi_sig && (S_in >= S_MIN) && V_in > V_MIN) begin
                 // Red : 0~10 or 170~179
                 red_detect   <= ((H_in <= 8'd6) || (H_in >= 8'd173)) ? 1'b1 : 1'b0;
                 green_detect <= ((H_in <= 8'd75) && (H_in >= 8'd45)) ? 1'b1 : 1'b0;
