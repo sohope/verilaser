@@ -7,6 +7,7 @@
 #include "I2C.h"
 #include "Servo.h"
 #include <stdlib.h> // abs() 사용을 위해 필요
+#include <math.h>   /* fabsf() */
 
 /* ── 외부 참조 ─────────────────────────────────────── */
 extern TIM_HandleTypeDef  htim3;
@@ -21,16 +22,16 @@ static float current_pan  = 90.0f;   /* 초기값: 중립 */
 static float current_tilt = 90.0f;
 
 /* ── 상수 설정 ─────────────────────────────────────── */
-#define TEST_X  100    /* ← 원하는 좌표로 바꾸세요 */
-#define TEST_Y  60
+#define TEST_X  160    /* ← 원하는 좌표로 바꾸세요 */
+#define TEST_Y  120
 
 #define SCREEN_CX    160
 #define SCREEN_CY    120
 #define DEADZONE_JOY 15      /* 조이스틱 중앙부 불감대 (떨림 방지) */
 #define JOY_GAIN     0.05f   /* 조이스틱 이동 속도 (숫자가 커질수록 빨라짐) */
 #define AUTO_GAIN    0.5f   /* 자동 추적 속도 ← 원하는 값으로 조절 */
-#define CCR_MIN      1000
-#define CCR_MAX      2000
+#define CCR_MIN      500
+#define CCR_MAX      2500
 
 /* ── 내부 함수 선언 ─────────────────────────────────── */
 static void Servo_SetAngle(float pan, float tilt);
@@ -50,45 +51,41 @@ void StartTask_Servo(void *argument)
     /* 초기 중립 위치 설정 */
     Servo_SetAngle(current_pan, current_tilt);
 
-//    for (;;)
-//    {
-//        /* ① I2C(카메라) 우선 확인 - 논블로킹 */
-//        if (osMessageQueueGet(Queue_I2CHandle, &coord, NULL, 0) == osOK)
-//        {
-//            if (coord.blob_valid)
-//                Servo_Control_Logic(coord.center_x, coord.center_y);
-//            else
-//                aimed_flag = 0;
-//            continue;
-//        }
-//
-//        /* ② I2C 없으면 조이스틱 대기 - 20ms */
-//        if (osMessageQueueGet(Queue_JoyHandle, &coord, NULL, 20) == osOK)
-//        {
-//            if (coord.blob_valid)
-//                Servo_Control_Logic(coord.center_x, coord.center_y);
-//            else
-//                aimed_flag = 0;
-//        }
-//    }
     for (;;)
     {
-        if (g_mode == 0)
+        if (g_mode == 1)
         {
             /* ── 수동 모드: 조이스틱 Queue ── */
             if (osMessageQueueGet(Queue_JoyHandle, &coord, NULL, 20) == osOK)
             {
-                if (coord.blob_valid)
+//                if (coord.blob_valid)
                 	Servo_Control_Logic(coord.center_x, coord.center_y, JOY_GAIN);
-                else
-                    aimed_flag = 0;
+//                else
+//                    aimed_flag = 0;
             }
         }
         else
         {
-            /* ── 자동 모드: 하드코딩 좌표 추적 ── */
-        	Servo_Control_Logic(TEST_X, TEST_Y, AUTO_GAIN);
-            osDelay(33);   /* ~30Hz */
+            /* ── 자동 모드: 목표 각도로 직접 수렴 ── */
+            float target_pan  = (TEST_X / 319.0f) * 180.0f;
+            float target_tilt = (TEST_Y / 239.0f) * 180.0f;
+
+            float diff_pan  = target_pan  - current_pan;
+            float diff_tilt = target_tilt - current_tilt;
+
+            if (fabsf(diff_pan) > 1.0f || fabsf(diff_tilt) > 1.0f)
+            {
+                current_pan  += diff_pan  * AUTO_GAIN;
+                current_tilt += diff_tilt * AUTO_GAIN;
+
+                Servo_SetAngle(current_pan, current_tilt);
+                aimed_flag = 0;
+            }
+            else
+            {
+                aimed_flag = 1;
+            }
+            osDelay(33);
         }
     }
 }
@@ -112,8 +109,10 @@ static void Servo_Control_Logic(uint16_t cx, uint16_t cy, float gain)
 
     /* [3] 각도 누적 (조이스틱을 밀고 있는 동안 각도가 계속 변함) */
     /* 방향이 반대라면 -JOY_GAIN으로 수정하세요 */
-    current_pan  += (float)err_x * gain;
+    current_pan  += (float)err_x * gain; // a = a + b
     current_tilt += (float)err_y * gain;
+
+    // a = -b
 
     /* [4] 각도 제한 (0~180도) */
     if (current_pan < 0.0f)    current_pan = 0.0f;
@@ -131,8 +130,10 @@ static void Servo_Control_Logic(uint16_t cx, uint16_t cy, float gain)
 static void Servo_SetAngle(float pan, float tilt)
 {
     // 각도(0~180)를 CCR(1000~2000)으로 변환
-    uint32_t ccr_pan  = (uint32_t)(CCR_MIN + (pan  / 180.0f) * 1000.0f);
-    uint32_t ccr_tilt = (uint32_t)(CCR_MIN + (tilt / 180.0f) * 1000.0f);
+//    uint32_t ccr_pan  = (uint32_t)(CCR_MIN + (pan  / 180.0f) * 1000.0f);
+//    uint32_t ccr_tilt = (uint32_t)(CCR_MIN + (tilt / 180.0f) * 1000.0f);
+	uint32_t ccr_pan  = (uint32_t)(CCR_MIN + (pan  / 180.0f) * (CCR_MAX - CCR_MIN));
+	uint32_t ccr_tilt = (uint32_t)(CCR_MIN + (tilt / 180.0f) * (CCR_MAX - CCR_MIN));
 
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, ccr_pan);
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, ccr_tilt);
