@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module i2c_serializer #(
+module i2c_controller #(
     parameter [6:0] SLAVE_ADDR_1 = 7'h10,
     parameter [6:0] SLAVE_ADDR_2 = 7'h11,
     parameter [6:0] SLAVE_ADDR_3 = 7'h12

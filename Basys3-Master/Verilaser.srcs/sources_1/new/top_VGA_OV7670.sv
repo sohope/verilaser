@@ -229,11 +229,11 @@ module top_VGA_OV7670 (
     wire [7:0] w_i2c_rx_data;
     wire       w_i2c_rx_done;
 
-    i2c_serializer #(
+    i2c_controller #(
         .SLAVE_ADDR_1(7'h10),
         .SLAVE_ADDR_2(7'h11),
         .SLAVE_ADDR_3(7'h12)
-    ) u_i2c_serializer (
+    ) u_i2c_controller (
         .clk       (clk_100m),
         .reset     (reset),
         .done      (w_done),
