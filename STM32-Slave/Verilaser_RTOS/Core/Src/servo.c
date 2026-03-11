@@ -56,7 +56,7 @@ void Servo_Manual(uint16_t cx, uint16_t cy)
 		return;
 
 	/* 누적 제어: 밀고 있는 동안 각도가 계속 변함 */
-	current_pan  += (float)err_x * JOY_GAIN;
+	current_pan  -= (float)err_x * JOY_GAIN;
 	current_tilt += (float)err_y * JOY_GAIN;
 
 	Servo_Clamp();
