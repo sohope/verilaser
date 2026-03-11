@@ -630,8 +630,17 @@ void Servo_Task(void *argument)
 	TargetData_t rxData;
 	Servo_Init();
 
+	uint8_t prev_mode = 0xFF;  /* 모드 전환 감지용 */
+
   for(;;)
   {
+	/* 모드가 바뀌면 서보를 센터로 리셋 */
+	if(g_mode != prev_mode)
+	{
+		Servo_GoCenter();
+		prev_mode = g_mode;
+	}
+
 	switch(g_mode)
 	{
 	case MODE_MANUAL:
