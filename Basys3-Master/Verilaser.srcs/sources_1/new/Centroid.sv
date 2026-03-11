@@ -54,6 +54,7 @@ module Centroid (
             r_count <= 0;
             g_count <= 0;
             b_count <= 0;
+            done    <= 0;
         end else if (frame_done) begin
             if (r_count > THRESHOLD) begin
                 r_target_x <= r_sum_x / r_count;
