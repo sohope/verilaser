@@ -102,6 +102,7 @@ volatile uint32_t i2c_err_count = 0;
 volatile TargetData_t last_rx_data;
 volatile uint8_t g_target_status = 0;
 volatile uint8_t g_mode = MODE_MANUAL;   /* 0=수동, 1=영점, 2=자동 */
+volatile uint8_t g_aim_locked = 0;       /* 1=조준 완료(1초 경과), 0=경고 중 */
 char uart_buf[128];
 /* USER CODE END PV */
 
@@ -636,10 +637,14 @@ void Servo_Task(void *argument)
 	{
 	case MODE_MANUAL:
 	{
-		g_target_status = 0;
 		uint16_t cx, cy;
 		Joystick_Read(&cx, &cy);
 		Servo_Manual(cx, cy);
+
+		/* I2C 큐도 비워서 객체 감지 상태 업데이트 (부저용) */
+		if(osMessageQueueGet(Queue_I2CHandle, &rxData, NULL, 0) == osOK)
+			g_target_status = rxData.status;
+
 		osDelay(20);  /* 50Hz */
 		break;
 	}
@@ -695,8 +700,8 @@ void Laser_Task(void *argument)
 		break;
 
 	case MODE_TRACK:
-		/* 자동 추적: 객체 감지 + Btn_fire 시 ON */
-		if(g_target_status == 1 && fire)
+		/* 자동 추적: 1초 경고 후 조준 완료 시에만 발사 */
+		if(g_aim_locked)
 			Laser_On();
 		else
 			Laser_Off();
@@ -756,8 +761,11 @@ void Buzzer_Task(void *argument)
 	switch(g_mode)
 	{
 	case MODE_MANUAL:
-		/* 수동 모드: 연속음 (삐이이이이입) */
-		Buzzer_On();
+		/* 수동 모드: 객체 감지 시 연속음 */
+		if(g_target_status == 1)
+			Buzzer_On();
+		else
+			Buzzer_Off();
 		osDelay(50);
 		break;
 
@@ -775,17 +783,20 @@ void Buzzer_Task(void *argument)
 			{
 				detect_start = osKernelGetTickCount();
 				prev_status = 1;
+				g_aim_locked = 0;
 			}
 
 			uint32_t elapsed = osKernelGetTickCount() - detect_start;
 			if(elapsed < 1000)
 			{
-				/* 처음 1초: 삡삡삡삡 (100ms ON, 100ms OFF) */
+				/* 처음 1초: 삡삡삡삡 (경고, 레이저 미발사) */
+				g_aim_locked = 0;
 				Buzzer_Beep(100, 100);
 			}
 			else
 			{
-				/* 1초 후: 연속음 (삐이이이이입) */
+				/* 1초 후: 연속음 + 레이저 발사 */
+				g_aim_locked = 1;
 				Buzzer_On();
 				osDelay(50);
 			}
@@ -794,6 +805,7 @@ void Buzzer_Task(void *argument)
 		{
 			/* 객체 없음: 무음 */
 			prev_status = 0;
+			g_aim_locked = 0;
 			Buzzer_Off();
 			osDelay(50);
 		}
