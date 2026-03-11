@@ -22,8 +22,8 @@ static float current_pan  = 90.0f;   /* 초기값: 중립 */
 static float current_tilt = 90.0f;
 
 /* ── 상수 설정 ─────────────────────────────────────── */
-#define TEST_X  160    /* ← 원하는 좌표로 바꾸세요 */
-#define TEST_Y  120
+#define TEST_X  329    /* ← 원하는 좌표로 바꾸세요 */
+#define TEST_Y  239
 
 #define SCREEN_CX    160
 #define SCREEN_CY    120
@@ -75,7 +75,7 @@ void StartTask_Servo(void *argument)
 
             if (fabsf(diff_pan) > 1.0f || fabsf(diff_tilt) > 1.0f)
             {
-                current_pan  += diff_pan  * AUTO_GAIN;
+                current_pan  -= diff_pan  * AUTO_GAIN;
                 current_tilt += diff_tilt * AUTO_GAIN;
 
                 Servo_SetAngle(current_pan, current_tilt);
