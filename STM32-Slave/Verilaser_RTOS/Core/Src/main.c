@@ -37,7 +37,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define I2C_SLAVE_ADDR   0x20   /* 7-bit addr=0x10, 좌시프트 */
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -367,7 +367,7 @@ static void MX_I2C1_Init(void)
   hi2c1.Instance = I2C1;
   hi2c1.Init.ClockSpeed = 100000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 20;
+  hi2c1.Init.OwnAddress1 = I2C_SLAVE_ADDR;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
@@ -378,8 +378,7 @@ static void MX_I2C1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN I2C1_Init 2 */
-  /* Basys3 7-bit addr=0x10 → HAL OwnAddress1=0x20 (좌시프트) */
-  hi2c1.Init.OwnAddress1 = 0x20;
+  hi2c1.Init.OwnAddress1 = I2C_SLAVE_ADDR;
   HAL_I2C_Init(&hi2c1);
   /* USER CODE END I2C1_Init 2 */
 

@@ -3,7 +3,7 @@
 <!--                                                         -->
 <!-- Copyright 1986-2020 Xilinx, Inc. All Rights Reserved.   -->
 
-<Project Version="7" Minor="54" Path="D:/workspace/project/verilog/src/self-study/Verilaser2/Basys3-Master/Verilaser.xpr">
+<Project Version="7" Minor="54" Path="D:/workspace/project/verilog/src/self-study/Verilaser3/Basys3-Master/Verilaser.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="b0d8a25fa21840f181ebcfd1e25efa35"/>
