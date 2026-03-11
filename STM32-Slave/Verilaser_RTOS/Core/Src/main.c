@@ -599,6 +599,7 @@ void StartDefaultTask(void *argument)
       /* LED 표시: 영점모드=ON, 나머지=OFF */
       HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin,
                         (g_mode == MODE_ZEROING) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+
       osDelay(50);  /* 디바운싱 */
     }
     btn_prev = btn_now;
@@ -705,14 +706,22 @@ void Laser_Task(void *argument)
 void I2C_Task(void *argument)
 {
   /* USER CODE BEGIN I2C_Task */
+  /* 디버그 로그 전담 태스크: UART 사용은 여기서만 */
+  static const char *mode_names[] = {"MAN", "ZERO", "TRK"};
+
   for(;;)
   {
+    uint16_t jx, jy;
+    Joystick_Read(&jx, &jy);
+
     int len = snprintf(uart_buf, sizeof(uart_buf),
-                       "[MON] mode=%u rx=%lu err=%lu x=%u y=%u st=%u\r\n",
-                       g_mode, i2c_rx_count, i2c_err_count,
-                       last_rx_data.x, last_rx_data.y, last_rx_data.status);
+                       "[%s] joy=(%3u,%3u) i2c=(%3u,%3u) st=%u rx=%lu err=%lu\r\n",
+                       mode_names[g_mode],
+                       jx, jy,
+                       last_rx_data.x, last_rx_data.y,
+                       g_target_status, i2c_rx_count, i2c_err_count);
     HAL_UART_Transmit(&huart2, (uint8_t*)uart_buf, len, 100);
-    osDelay(500);
+    osDelay(300);
   }
   /* USER CODE END I2C_Task */
 }
