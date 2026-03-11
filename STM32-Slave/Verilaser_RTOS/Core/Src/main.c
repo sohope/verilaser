@@ -366,7 +366,7 @@ static void MX_I2C1_Init(void)
   hi2c1.Instance = I2C1;
   hi2c1.Init.ClockSpeed = 100000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 40;
+  hi2c1.Init.OwnAddress1 = 20;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
@@ -377,7 +377,9 @@ static void MX_I2C1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN I2C1_Init 2 */
-
+  /* Basys3 7-bit addr=0x10 → HAL OwnAddress1=0x20 (좌시프트) */
+  hi2c1.Init.OwnAddress1 = 0x20;
+  HAL_I2C_Init(&hi2c1);
   /* USER CODE END I2C1_Init 2 */
 
 }
@@ -675,17 +677,26 @@ void Laser_Task(void *argument)
 	Laser_Init();
   for(;;)
   {
+	uint8_t fire = (HAL_GPIO_ReadPin(Btn_fire_GPIO_Port, Btn_fire_Pin) == GPIO_PIN_RESET);
+
 	switch(g_mode)
 	{
 	case MODE_MANUAL:
+		/* 수동 모드: Btn_fire 누르는 동안만 ON */
+		if(fire)
+			Laser_On();
+		else
+			Laser_Off();
+		break;
+
 	case MODE_ZEROING:
-		/* 수동/영점 모드: 레이저 항상 ON */
+		/* 영점 모드: 항상 ON (설치 기준점 확인용) */
 		Laser_On();
 		break;
 
 	case MODE_TRACK:
-		/* 자동 추적: 객체 감지 시에만 ON */
-		if(g_target_status == 1)
+		/* 자동 추적: 객체 감지 + Btn_fire 시 ON */
+		if(g_target_status == 1 && fire)
 			Laser_On();
 		else
 			Laser_Off();
