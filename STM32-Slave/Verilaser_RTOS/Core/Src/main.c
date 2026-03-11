@@ -24,6 +24,8 @@
 /* USER CODE BEGIN Includes */
 #include "servo.h"
 #include "laser.h"
+#include "joystick.h"
+#include "buzzer.h"
 #include <stdio.h>
 #include <string.h>
 /* USER CODE END Includes */
@@ -44,6 +46,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
 I2C_HandleTypeDef hi2c1;
 
 TIM_HandleTypeDef htim3;
@@ -61,7 +66,7 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t Task_ServoHandle;
 const osThreadAttr_t Task_Servo_attributes = {
   .name = "Task_Servo",
-  .stack_size = 256 * 4,
+  .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for Task_Laser */
@@ -96,15 +101,18 @@ volatile uint32_t i2c_rx_count = 0;
 volatile uint32_t i2c_err_count = 0;
 volatile TargetData_t last_rx_data;
 volatile uint8_t g_target_status = 0;
+volatile uint8_t g_mode = MODE_MANUAL;   /* 0=수동, 1=영점, 2=자동 */
 char uart_buf[128];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_TIM3_Init(void);
+static void MX_ADC1_Init(void);
 void StartDefaultTask(void *argument);
 void Servo_Task(void *argument);
 void Laser_Task(void *argument);
@@ -149,9 +157,11 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_I2C1_Init();
   MX_TIM3_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
   {
     const char *msg = "\r\n[BOOT] System started\r\n";
@@ -161,6 +171,8 @@ int main(void)
     int len = sprintf(uart_buf, "[BOOT] I2C Slave Listen: %s (addr=0x%02X)\r\n",
                       (ret == HAL_OK) ? "OK" : "FAIL", (unsigned int)(hi2c1.Init.OwnAddress1 >> 1));
     HAL_UART_Transmit(&huart2, (uint8_t*)uart_buf, len, 100);
+
+    Joystick_Init();
   }
   /* USER CODE END 2 */
 
@@ -181,10 +193,12 @@ int main(void)
 
   /* Create the queue(s) */
   /* creation of Queue_I2C */
-  Queue_I2CHandle = osMessageQueueNew (32, sizeof(TargetData_t), &Queue_I2C_attributes);
+  Queue_I2CHandle = osMessageQueueNew (32, sizeof(uint16_t), &Queue_I2C_attributes);
 
   /* USER CODE BEGIN RTOS_QUEUES */
-  /* add queues, ... */
+  /* CubeMX가 sizeof(uint16_t)로 생성하므로 TargetData_t 크기로 재생성 */
+  osMessageQueueDelete(Queue_I2CHandle);
+  Queue_I2CHandle = osMessageQueueNew(32, sizeof(TargetData_t), &Queue_I2C_attributes);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -274,6 +288,67 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_84CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = 2;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
+}
+
+/**
   * @brief I2C1 Initialization Function
   * @param None
   * @retval None
@@ -291,12 +366,12 @@ static void MX_I2C1_Init(void)
   hi2c1.Instance = I2C1;
   hi2c1.Init.ClockSpeed = 100000;
   hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 0x20;
+  hi2c1.Init.OwnAddress1 = 40;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
   hi2c1.Init.OwnAddress2 = 0;
   hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_ENABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
   if (HAL_I2C_Init(&hi2c1) != HAL_OK)
   {
     Error_Handler();
@@ -394,6 +469,22 @@ static void MX_USART2_UART_Init(void)
 }
 
 /**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -414,6 +505,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, LD2_Pin|Laser_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(Led_fire_GPIO_Port, Led_fire_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
@@ -428,6 +522,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : Btn_fire_Pin Btn_mode_Pin */
+  GPIO_InitStruct.Pin = Btn_fire_Pin|Btn_mode_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : Led_fire_Pin */
+  GPIO_InitStruct.Pin = Led_fire_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(Led_fire_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : Buzzer_Pin */
   GPIO_InitStruct.Pin = Buzzer_Pin;
@@ -478,27 +585,31 @@ void HAL_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  //   TargetData_t fakeData;
-  // fakeData.y = 120;       // Y는 중앙 고정
-  // fakeData.status = 1;    // 타겟 발견 상태로 고정
-
-  // uint16_t test_x = 160;  // 초기 x 좌표 (중앙)
-
-  // static int dir = 1; // 1이면 증가, -1이면 감소
+  /* defaultTask: 모드 전환 버튼 + Fire 버튼 처리 (LeeJae StartTask03 참고) */
+  uint8_t btn_prev = 1;
 
   for(;;)
   {
-        // test_x += (dir * 15); // 5픽셀씩 이동 (숫자를 키우면 빨라짐)
+    /* ── Btn_mode(PB15) 토글: Mode 0 → 1 → 2 → 0 ... ── */
+    uint8_t btn_now = HAL_GPIO_ReadPin(Btn_mode_GPIO_Port, Btn_mode_Pin);
+    if (btn_prev == 1 && btn_now == 0)  /* falling edge */
+    {
+      g_mode = (g_mode + 1) % 3;
 
-        // if(test_x >= 260) dir = -1; // 끝에 도달하면 방향 반전
-        // if(test_x <= 60)  dir = 1;  // 반대쪽 끝 도달 시 방향 반전
+      /* LED 표시: 영점모드=ON, 나머지=OFF */
+      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin,
+                        (g_mode == MODE_ZEROING) ? GPIO_PIN_SET : GPIO_PIN_RESET);
+      osDelay(50);  /* 디바운싱 */
+    }
+    btn_prev = btn_now;
 
-        // fakeData.x = test_x;
-        // osMessageQueuePut(Queue_I2CHandle, &fakeData, 0, osWaitForever);
+    /* ── Btn_fire(PB13) → Led_fire(PB14) 표시 ── */
+    if (HAL_GPIO_ReadPin(Btn_fire_GPIO_Port, Btn_fire_Pin) == GPIO_PIN_RESET)
+      HAL_GPIO_WritePin(Led_fire_GPIO_Port, Led_fire_Pin, GPIO_PIN_SET);
+    else
+      HAL_GPIO_WritePin(Led_fire_GPIO_Port, Led_fire_Pin, GPIO_PIN_RESET);
 
-        // osDelay(10); // 0.05초 대기 (더 부드럽게 윙~ 하고 움직임)
-
-    osDelay(1000);
+    osDelay(20);
   }
   /* USER CODE END 5 */
 }
@@ -515,17 +626,36 @@ void Servo_Task(void *argument)
   /* USER CODE BEGIN Servo_Task */
 	TargetData_t rxData;
 	Servo_Init();
-  /* Infinite loop */
+
   for(;;)
   {
-	if(osMessageQueueGet(Queue_I2CHandle, &rxData, NULL, osWaitForever) == osOK)
+	switch(g_mode)
 	{
-		g_target_status = rxData.status; //레이저 task한테 현재 타겟 상태 전달
+	case MODE_MANUAL:
+	{
+		g_target_status = 0;
+		uint16_t cx, cy;
+		Joystick_Read(&cx, &cy);
+		Servo_Manual(cx, cy);
+		osDelay(20);  /* 50Hz */
+		break;
+	}
+	case MODE_ZEROING:
+		g_target_status = 0;
+		Servo_GoCenter();
+		osDelay(100);
+		break;
 
-		if(rxData.status == 1)
+	case MODE_TRACK:
+		if(osMessageQueueGet(Queue_I2CHandle, &rxData, NULL, 100) == osOK)
 		{
-			Servo_Track(rxData.x, rxData.y);
+			g_target_status = rxData.status;
+			if(rxData.status == 1)
+			{
+				Servo_Track(rxData.x, rxData.y);
+			}
 		}
+		break;
 	}
   }
   /* USER CODE END Servo_Task */
@@ -541,22 +671,26 @@ void Servo_Task(void *argument)
 void Laser_Task(void *argument)
 {
   /* USER CODE BEGIN Laser_Task */
-  /* Infinite loop */
 	Laser_Init();
   for(;;)
   {
-	  if(g_target_status == 1)
-	  {
-    osDelay(300);
-    if(g_target_status == 1)
-    {
-    	Laser_On();
-    }
-	  }
-	  else{
-		  Laser_Off();
-	  }
-	  osDelay(10);
+	switch(g_mode)
+	{
+	case MODE_MANUAL:
+	case MODE_ZEROING:
+		/* 수동/영점 모드: 레이저 항상 ON */
+		Laser_On();
+		break;
+
+	case MODE_TRACK:
+		/* 자동 추적: 객체 감지 시에만 ON */
+		if(g_target_status == 1)
+			Laser_On();
+		else
+			Laser_Off();
+		break;
+	}
+	osDelay(10);
   }
   /* USER CODE END Laser_Task */
 }
@@ -571,12 +705,12 @@ void Laser_Task(void *argument)
 void I2C_Task(void *argument)
 {
   /* USER CODE BEGIN I2C_Task */
-  /* Infinite loop */
   for(;;)
   {
-    int len = sprintf(uart_buf, "[MON] rx=%lu err=%lu x=%u y=%u st=%u\r\n",
-                      i2c_rx_count, i2c_err_count,
-                      last_rx_data.x, last_rx_data.y, last_rx_data.status);
+    int len = snprintf(uart_buf, sizeof(uart_buf),
+                       "[MON] mode=%u rx=%lu err=%lu x=%u y=%u st=%u\r\n",
+                       g_mode, i2c_rx_count, i2c_err_count,
+                       last_rx_data.x, last_rx_data.y, last_rx_data.status);
     HAL_UART_Transmit(&huart2, (uint8_t*)uart_buf, len, 100);
     osDelay(500);
   }
@@ -593,10 +727,58 @@ void I2C_Task(void *argument)
 void Buzzer_Task(void *argument)
 {
   /* USER CODE BEGIN Buzzer_Task */
-  /* Infinite loop */
+	Buzzer_Init();
+	uint32_t detect_start = 0;
+	uint8_t  prev_status  = 0;
+
   for(;;)
   {
-    osDelay(1);
+	switch(g_mode)
+	{
+	case MODE_MANUAL:
+		/* 수동 모드: 연속음 (삐이이이이입) */
+		Buzzer_On();
+		osDelay(50);
+		break;
+
+	case MODE_ZEROING:
+		/* 영점 모드: 무음 */
+		Buzzer_Off();
+		osDelay(100);
+		break;
+
+	case MODE_TRACK:
+		if(g_target_status == 1)
+		{
+			/* 객체 감지 시작 시점 기록 */
+			if(prev_status == 0)
+			{
+				detect_start = osKernelGetTickCount();
+				prev_status = 1;
+			}
+
+			uint32_t elapsed = osKernelGetTickCount() - detect_start;
+			if(elapsed < 1000)
+			{
+				/* 처음 1초: 삡삡삡삡 (100ms ON, 100ms OFF) */
+				Buzzer_Beep(100, 100);
+			}
+			else
+			{
+				/* 1초 후: 연속음 (삐이이이이입) */
+				Buzzer_On();
+				osDelay(50);
+			}
+		}
+		else
+		{
+			/* 객체 없음: 무음 */
+			prev_status = 0;
+			Buzzer_Off();
+			osDelay(50);
+		}
+		break;
+	}
   }
   /* USER CODE END Buzzer_Task */
 }
