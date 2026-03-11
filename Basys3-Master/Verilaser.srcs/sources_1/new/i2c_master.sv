@@ -48,7 +48,7 @@ module i2c_master (
     logic rx_done_reg, rx_done_next;
     logic i2c_nack_reg, i2c_nack_next;
 
-    assign scl = scl_reg;
+    assign scl = scl_reg ? 1'bz : 1'b0;  // open-drain
     assign tx_done = tx_done_reg;
     assign tx_ready = (state == IDLE) ? 1 : 0;
     assign rx_data = rx_data_reg;
