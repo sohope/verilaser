@@ -26,7 +26,8 @@ module i2c_master (
     logic sda_reg, sda_next;
     logic sda_oen_reg, sda_oen_next;
 
-    assign sda = sda_oen_reg ? sda_reg : 1'bz;
+    // assign sda = sda_oen_reg ? sda_reg : 1'bz;
+    assign sda = (sda_oen_reg && !sda_reg) ? 1'b0 : 1'bz;
 
     typedef enum logic [2:0] {
         IDLE,
