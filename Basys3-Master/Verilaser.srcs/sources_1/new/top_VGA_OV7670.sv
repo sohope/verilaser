@@ -45,7 +45,7 @@ module top_VGA_OV7670 (
     localparam TARGET_Y_MIN = 10'd010;  //y_min:000
     localparam TARGET_Y_MAX = 10'd230;  //y_max:240
 
-    clk_wiz_0 instance_name (
+    clk_wiz_0 u_ClkGen (
         // Clock out ports
         .clk_out1(clk_100m),  // output clk_out1 -> 100MHz 
         .clk_out2(xclk),      // output clk_out2 -> 25MHz
