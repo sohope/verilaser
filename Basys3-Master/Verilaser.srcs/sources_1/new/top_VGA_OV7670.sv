@@ -19,7 +19,9 @@ module top_VGA_OV7670 (
     output logic [3:0] port_blue,
     // I2C for STM32 (Pmod JA)
     output logic       i2c_scl,
-    inout  wire        i2c_sda
+    inout  wire        i2c_sda,
+    input  logic       RsRx,
+    output logic       RsTx
 );
     logic                         clk_100m;
     logic [                  9:0] x_pixel;
@@ -174,7 +176,7 @@ module top_VGA_OV7670 (
     logic [9:0] w_r_target_x, w_r_target_y;
     logic [9:0] w_g_target_x, w_g_target_y;
     logic [9:0] w_b_target_x, w_b_target_y;
-    logic       r_status, g_status, b_status;
+    logic r_status, g_status, b_status;
     logic w_done;
 
     Centroid u_Centroid (
@@ -270,4 +272,53 @@ module top_VGA_OV7670 (
         .scl      (i2c_scl),
         .sda      (i2c_sda)
     );
+
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
+    //          리재 uart 추가 
+    logic       w_fifo_full;
+    logic [7:0] w_fifo_wdata;
+    logic       w_fifo_wr_en;
+
+
+    uart_controller U_uart_controller (
+        .clk(clk_100m),  // clk_100m 도메인
+        .reset(reset),
+        .done(w_done),  // rclk 도메인 신호 → 내부에서 CDC 처리
+        .r_target_x(w_r_target_x),
+        .r_target_y(w_r_target_y),
+        .r_status(r_status),
+        .g_target_x(w_g_target_x),
+        .g_target_y(w_g_target_y),
+        .g_status(g_status),
+        .b_target_x(w_b_target_x),
+        .b_target_y(w_b_target_y),
+        .b_status(b_status),
+        .fifo_full(w_fifo_full),
+        .fifo_wdata(w_fifo_wdata),
+        .fifo_wr_en(w_fifo_wr_en)
+    );
+
+    uart_tx_fifo #(
+        .BPS(115200)
+    ) U_uart_tx_fifo (
+        .clk  (clk_100m),   // clk_100m 단일 클럭
+        .reset(reset),
+        .wdata(w_fifo_wdata),
+        .wr   (w_fifo_wr_en),
+        .full (w_fifo_full),
+        .tx   (RsTx)
+    );
+
+    uart_rx_fifo #(
+        .BPS(115200)
+    ) U_uart_rx_fifo (
+        .clk  (clk_100m),
+        .reset(reset),
+        .rx   (RsRx),
+        .rd   (),
+        .rdata(),
+        .empty(),
+        .full ()
+    );
+    //ㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡㅡ
 endmodule
