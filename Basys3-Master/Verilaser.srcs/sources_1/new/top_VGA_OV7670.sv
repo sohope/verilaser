@@ -255,58 +255,27 @@ module top_VGA_OV7670 (
 
     logic [11:0] w_camera_rgb;
     assign w_camera_rgb = {w_red_o, w_green_o, w_blue_o};
-    logic [11:0] w_debug_rgb;
-    logic [11:0] w_vga_rgb;
 
-    // 기존 Crossline_Display = 디버깅 뷰 (십자선 + 4분할 + ROI)
-    Crossline_Display #(
+    VGA_Display_Pipeline #(
         .ROI_X_MIN(TARGET_X_MIN),
         .ROI_X_MAX(TARGET_X_MAX),
         .ROI_Y_MIN(TARGET_Y_MIN),
         .ROI_Y_MAX(TARGET_Y_MAX)
-    ) u_Crossline_Display (
-        .vga_x     (w_x_out_BF),
-        .vga_y     (w_y_out_BF),
+    ) u_VGA_Display_Pipeline (
+        .sw(sw), .DE(w_DE),
+        .vga_x(w_x_out_BF), .vga_y(w_y_out_BF),
         .camera_rgb(w_camera_rgb),
-        .r1_target_x(w_r1_x),
-        .r1_target_y(w_r1_y),
-        .r2_target_x(w_r2_x),
-        .r2_target_y(w_r2_y),
-        .r3_target_x(w_r3_x),
-        .r3_target_y(w_r3_y),
-        .g1_target_x(w_g1_x),
-        .g1_target_y(w_g1_y),
-        .g2_target_x(w_g2_x),
-        .g2_target_y(w_g2_y),
-        .g3_target_x(w_g3_x),
-        .g3_target_y(w_g3_y),
-        .b1_target_x(w_b1_x),
-        .b1_target_y(w_b1_y),
-        .b2_target_x(w_b2_x),
-        .b2_target_y(w_b2_y),
-        .b3_target_x(w_b3_x),
-        .b3_target_y(w_b3_y),
-        .red_blob  (w_red_blob),
-        .green_blob(w_green_blob),
-        .blue_blob (w_blue_blob),
-        .vga_rgb   (w_debug_rgb),
-        .o_vga_x   (),
-        .o_vga_y   ()
-    );
-
-    Display_Mux u_Display_Mux (
-        .sw        (sw),
-        .camera_rgb(w_camera_rgb),
-        .debug_rgb (w_debug_rgb),
-        .vga_rgb   (w_vga_rgb)
-    );
-
-    VGA_Output u_VGA_Output (
-        .DE        (w_DE),
-        .vga_rgb   (w_vga_rgb),
-        .port_red  (port_red),
-        .port_green(port_green),
-        .port_blue (port_blue)
+        .r1_target_x(w_r1_x), .r1_target_y(w_r1_y),
+        .r2_target_x(w_r2_x), .r2_target_y(w_r2_y),
+        .r3_target_x(w_r3_x), .r3_target_y(w_r3_y),
+        .g1_target_x(w_g1_x), .g1_target_y(w_g1_y),
+        .g2_target_x(w_g2_x), .g2_target_y(w_g2_y),
+        .g3_target_x(w_g3_x), .g3_target_y(w_g3_y),
+        .b1_target_x(w_b1_x), .b1_target_y(w_b1_y),
+        .b2_target_x(w_b2_x), .b2_target_y(w_b2_y),
+        .b3_target_x(w_b3_x), .b3_target_y(w_b3_y),
+        .red_blob(w_red_blob), .green_blob(w_green_blob), .blue_blob(w_blue_blob),
+        .port_red(port_red), .port_green(port_green), .port_blue(port_blue)
     );
 
     // I2C serializer + master (clk_100m domain)
