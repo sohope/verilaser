@@ -8,6 +8,29 @@
 #ifndef INC_SERVO_H_
 #define INC_SERVO_H_
 
+#define SCREEN_CX    160
+#define SCREEN_CY    120
+#define JOY_GAIN     0.05f
+#define DEADZONE_JOY 15
+#define CCR_MIN      500
+#define CCR_MAX      2500
+
+// turret dependancy
+#define OFFSET_X     0       /* 카메라-터렛 X 오프셋 (픽셀) */
+#define OFFSET_Y     0      /* 카메라-터렛 Y 오프셋 (레이저가 80px 아래) */
+#define PAN_GAIN     0.125f   /* pan: 절반 (0.5 * 0.5) */
+#define TILT_GAIN    0.125f  /* tilt: 3/4 (0.5 * 0.75) */
+
+// #define OFFSET_X     0       /* 카메라-터렛 X 오프셋 (픽셀) */
+// #define OFFSET_Y     0      /* 카메라-터렛 Y 오프셋 (레이저가 80px 아래) */
+// #define PAN_GAIN     0.125f   /* pan: 절반 (0.5 * 0.5) */
+// #define TILT_GAIN    0.125f  /* tilt: 3/4 (0.5 * 0.75) */
+
+// #define OFFSET_X     0       /* 카메라-터렛 X 오프셋 (픽셀) */
+// #define OFFSET_Y     0      /* 카메라-터렛 Y 오프셋 (레이저가 80px 아래) */
+// #define PAN_GAIN     0.125f   /* pan: 절반 (0.5 * 0.5) */
+// #define TILT_GAIN    0.125f  /* tilt: 3/4 (0.5 * 0.75) */
+
 #include "main.h"
 
 typedef enum {

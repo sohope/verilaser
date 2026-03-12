@@ -37,7 +37,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define I2C_SLAVE_ADDR   0x20   /* 7-bit addr=0x10, 좌시?��?�� */
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
