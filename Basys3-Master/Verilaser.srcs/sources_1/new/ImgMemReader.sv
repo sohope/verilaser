@@ -5,6 +5,7 @@ module ImgMemReader (
     input  logic                       DE,
     input  logic [                9:0] x_pixel,
     input  logic [                9:0] y_pixel,
+    input  logic                       upscale,  // 0: 타일링(4분할), 1: 2배 업스케일
     output logic [$clog2(320*240)-1:0] addr,
     input  logic [               15:0] imgData,
     output logic [                3:0] red_o,
@@ -16,8 +17,15 @@ module ImgMemReader (
 );
     logic [8:0] map_x;
     logic [8:0] map_y;
-    assign map_x = (x_pixel >= 320) ? (x_pixel - 320) : x_pixel;
-    assign map_y = (y_pixel >= 240) ? (y_pixel - 240) : y_pixel;
+    always_comb begin
+        if (upscale) begin
+            map_x = x_pixel[9:1];  // 640 -> 320 (2배 업스케일)
+            map_y = y_pixel[9:1];  // 480 -> 240
+        end else begin
+            map_x = (x_pixel >= 320) ? (x_pixel - 320) : x_pixel;  // 타일링
+            map_y = (y_pixel >= 240) ? (y_pixel - 240) : y_pixel;
+        end
+    end
 
     logic valid_640x480;
     assign valid_640x480 = DE && (x_pixel < 640) && (y_pixel < 480);
