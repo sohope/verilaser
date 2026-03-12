@@ -19,6 +19,6 @@ void Joystick_Init(void)
 void Joystick_Read(uint16_t *cx, uint16_t *cy)
 {
 	/* ADC(0~4095) → 화면 좌표(0~319, 0~239) 매핑 */
-	*cx = (uint16_t)((adc_val[0] / 4095.0f) * 319.0f);
-	*cy = (uint16_t)((adc_val[1] / 4095.0f) * 239.0f);
+	*cx = 319 - (uint16_t)((adc_val[0] / 4095.0f) * 319.0f);
+	*cy = 239 - (uint16_t)((adc_val[1] / 4095.0f) * 239.0f);
 }
