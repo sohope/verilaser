@@ -122,11 +122,11 @@ module top_VGA_OV7670 (
     logic w_DE_VP;
     logic [9:0] w_x_VP, w_y_VP;
     logic w_red_blob, w_green_blob, w_blue_blob;
-    logic [9:0] w_r1_x, w_r1_y, w_r2_x, w_r2_y, w_r3_x, w_r3_y;
-    logic [9:0] w_g1_x, w_g1_y, w_g2_x, w_g2_y, w_g3_x, w_g3_y;
-    logic [9:0] w_b1_x, w_b1_y, w_b2_x, w_b2_y, w_b3_x, w_b3_y;
-    logic r1_status, g1_status, b1_status;
-    logic w_done_r, w_done_g, w_done_b;
+    logic [9:0] w_r_x, w_r_y;
+    logic [9:0] w_g_x, w_g_y;
+    logic [9:0] w_b_x, w_b_y;
+    logic w_r_status, w_g_status, w_b_status;
+    logic w_done;
 
     Vision_Pipeline #(
         .ROI_X_MIN(TARGET_X_MIN),
@@ -134,48 +134,26 @@ module top_VGA_OV7670 (
         .ROI_Y_MIN(TARGET_Y_MIN),
         .ROI_Y_MAX(TARGET_Y_MAX)
     ) u_Vision_Pipeline (
-        .clk        (rclk),
-        .reset      (reset),
-        .DE_in      (w_DE),
-        .x_in       (w_x_pixel_o),
-        .y_in       (w_y_pixel_o),
-        .R_in       (w_red_o),
-        .G_in       (w_green_o),
-        .B_in       (w_blue_o),
+        .clk       (rclk),
+        .reset     (reset),
+        .DE_in     (w_DE),
+        .x_in      (w_x_pixel_o),
+        .y_in      (w_y_pixel_o),
+        .R_in      (w_red_o),
+        .G_in      (w_green_o),
+        .B_in      (w_blue_o),
         // Blob 출력
-        .DE_out     (w_DE_VP),
-        .x_out      (w_x_VP),
-        .y_out      (w_y_VP),
-        .red_blob   (w_red_blob),
-        .green_blob (w_green_blob),
-        .blue_blob  (w_blue_blob),
-        // Red targets
-        .r1_target_x(w_r1_x),
-        .r1_target_y(w_r1_y),
-        .r2_target_x(w_r2_x),
-        .r2_target_y(w_r2_y),
-        .r3_target_x(w_r3_x),
-        .r3_target_y(w_r3_y),
-        .r1_status  (r1_status),
-        .done_r     (w_done_r),
-        // Green targets
-        .g1_target_x(w_g1_x),
-        .g1_target_y(w_g1_y),
-        .g2_target_x(w_g2_x),
-        .g2_target_y(w_g2_y),
-        .g3_target_x(w_g3_x),
-        .g3_target_y(w_g3_y),
-        .g1_status  (g1_status),
-        .done_g     (w_done_g),
-        // Blue targets
-        .b1_target_x(w_b1_x),
-        .b1_target_y(w_b1_y),
-        .b2_target_x(w_b2_x),
-        .b2_target_y(w_b2_y),
-        .b3_target_x(w_b3_x),
-        .b3_target_y(w_b3_y),
-        .b1_status  (b1_status),
-        .done_b     (w_done_b)
+        .DE_out    (w_DE_VP),
+        .x_out     (w_x_VP),
+        .y_out     (w_y_VP),
+        .red_blob  (w_red_blob),
+        .green_blob(w_green_blob),
+        .blue_blob (w_blue_blob),
+        // target 좌표
+        .r_target_x(w_r_x), .r_target_y(w_r_y), .r_status(w_r_status),
+        .g_target_x(w_g_x), .g_target_y(w_g_y), .g_status(w_g_status),
+        .b_target_x(w_b_x), .b_target_y(w_b_y), .b_status(w_b_status),
+        .done      (w_done)
     );
 
     logic [11:0] w_camera_rgb;
@@ -192,24 +170,15 @@ module top_VGA_OV7670 (
         .vga_x(w_x_VP),
         .vga_y(w_y_VP),
         .camera_rgb(w_camera_rgb),
-        .r1_target_x(w_r1_x),
-        .r1_target_y(w_r1_y),
-        .r2_target_x(w_r2_x),
-        .r2_target_y(w_r2_y),
-        .r3_target_x(w_r3_x),
-        .r3_target_y(w_r3_y),
-        .g1_target_x(w_g1_x),
-        .g1_target_y(w_g1_y),
-        .g2_target_x(w_g2_x),
-        .g2_target_y(w_g2_y),
-        .g3_target_x(w_g3_x),
-        .g3_target_y(w_g3_y),
-        .b1_target_x(w_b1_x),
-        .b1_target_y(w_b1_y),
-        .b2_target_x(w_b2_x),
-        .b2_target_y(w_b2_y),
-        .b3_target_x(w_b3_x),
-        .b3_target_y(w_b3_y),
+        .r1_target_x(w_r_x), .r1_target_y(w_r_y),
+        .r2_target_x(10'd0), .r2_target_y(10'd0),
+        .r3_target_x(10'd0), .r3_target_y(10'd0),
+        .g1_target_x(w_g_x), .g1_target_y(w_g_y),
+        .g2_target_x(10'd0), .g2_target_y(10'd0),
+        .g3_target_x(10'd0), .g3_target_y(10'd0),
+        .b1_target_x(w_b_x), .b1_target_y(w_b_y),
+        .b2_target_x(10'd0), .b2_target_y(10'd0),
+        .b3_target_x(10'd0), .b3_target_y(10'd0),
         .red_blob(w_red_blob),
         .green_blob(w_green_blob),
         .blue_blob(w_blue_blob),
@@ -219,7 +188,6 @@ module top_VGA_OV7670 (
     );
 
     // I2C serializer + master (clk_100m domain)
-    // Multi_Centroid의 첫 번째 타겟을 I2C/UART로 전송
     wire w_i2c_en, w_i2c_start, w_i2c_stop, w_i2c_nack;
     wire [7:0] w_i2c_tx_data;
     wire w_i2c_tx_done, w_i2c_tx_ready;
@@ -233,16 +201,16 @@ module top_VGA_OV7670 (
     ) u_i2c_controller (
         .clk       (clk_100m),
         .reset     (reset),
-        .done      (w_done_r),
-        .r_target_x(w_r1_x),
-        .r_target_y(w_r1_y),
-        .g_target_x(w_g1_x),
-        .g_target_y(w_g1_y),
-        .b_target_x(w_b1_x),
-        .b_target_y(w_b1_y),
-        .r_status  (r1_status),
-        .g_status  (g1_status),
-        .b_status  (b1_status),
+        .done      (w_done),
+        .r_target_x(w_r_x),
+        .r_target_y(w_r_y),
+        .g_target_x(w_g_x),
+        .g_target_y(w_g_y),
+        .b_target_x(w_b_x),
+        .b_target_y(w_b_y),
+        .r_status  (w_r_status),
+        .g_status  (w_g_status),
+        .b_status  (w_b_status),
         .i2c_en    (w_i2c_en),
         .i2c_start (w_i2c_start),
         .i2c_stop  (w_i2c_stop),
@@ -277,16 +245,16 @@ module top_VGA_OV7670 (
     uart_controller U_uart_controller (
         .clk(clk_100m),
         .reset(reset),
-        .done(w_done_r),
-        .r_target_x(w_r1_x),
-        .r_target_y(w_r1_y),
-        .r_status(r1_status),
-        .g_target_x(w_g1_x),
-        .g_target_y(w_g1_y),
-        .g_status(g1_status),
-        .b_target_x(w_b1_x),
-        .b_target_y(w_b1_y),
-        .b_status(b1_status),
+        .done(w_done),
+        .r_target_x(w_r_x),
+        .r_target_y(w_r_y),
+        .r_status(w_r_status),
+        .g_target_x(w_g_x),
+        .g_target_y(w_g_y),
+        .g_status(w_g_status),
+        .b_target_x(w_b_x),
+        .b_target_y(w_b_y),
+        .b_status(w_b_status),
         .fifo_full(w_fifo_full),
         .fifo_wdata(w_fifo_wdata),
         .fifo_wr_en(w_fifo_wr_en)

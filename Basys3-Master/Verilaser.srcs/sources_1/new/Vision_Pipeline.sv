@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
 
 // Vision 처리 파이프라인 탑 모듈
-// HSV_Converter → Color_Detect → Blob_Filter → Multi_Centroid x3
+// HSV_Converter → Color_Detect → Blob_Filter → Centroid
 module Vision_Pipeline #(
     parameter ROI_X_MIN = 10'd10,
     parameter ROI_X_MAX = 10'd310,
@@ -24,33 +24,17 @@ module Vision_Pipeline #(
     output logic       red_blob,
     output logic       green_blob,
     output logic       blue_blob,
-    // Red target 좌표
-    output logic [9:0] r1_target_x,
-    output logic [9:0] r1_target_y,
-    output logic [9:0] r2_target_x,
-    output logic [9:0] r2_target_y,
-    output logic [9:0] r3_target_x,
-    output logic [9:0] r3_target_y,
-    output logic       r1_status,
-    output logic       done_r,
-    // Green target 좌표
-    output logic [9:0] g1_target_x,
-    output logic [9:0] g1_target_y,
-    output logic [9:0] g2_target_x,
-    output logic [9:0] g2_target_y,
-    output logic [9:0] g3_target_x,
-    output logic [9:0] g3_target_y,
-    output logic       g1_status,
-    output logic       done_g,
-    // Blue target 좌표
-    output logic [9:0] b1_target_x,
-    output logic [9:0] b1_target_y,
-    output logic [9:0] b2_target_x,
-    output logic [9:0] b2_target_y,
-    output logic [9:0] b3_target_x,
-    output logic [9:0] b3_target_y,
-    output logic       b1_status,
-    output logic       done_b
+    // target 좌표 (색상별 1개)
+    output logic [9:0] r_target_x,
+    output logic [9:0] r_target_y,
+    output logic       r_status,
+    output logic [9:0] g_target_x,
+    output logic [9:0] g_target_y,
+    output logic       g_status,
+    output logic [9:0] b_target_x,
+    output logic [9:0] b_target_y,
+    output logic       b_status,
+    output logic       done
 );
 
     // HSV 출력
@@ -75,7 +59,7 @@ module Vision_Pipeline #(
         .V_out (w_V)
     );
 
-    // Color Detect 출력
+    // Color Detect
     logic       w_DE_CD;
     logic [9:0] w_x_CD, w_y_CD;
     logic       w_red_detect, w_green_detect, w_blue_detect;
@@ -120,62 +104,26 @@ module Vision_Pipeline #(
         .blue_blob   (blue_blob)
     );
 
-    // Multi_Centroid x3
-    Multi_Centroid u_Centroid_R (
-        .clk        (clk),
-        .reset      (reset),
-        .DE_in      (DE_out),
-        .x_in       (x_out),
-        .y_in       (y_out),
-        .blob_in    (red_blob),
-        .t1_target_x(r1_target_x),
-        .t1_target_y(r1_target_y),
-        .t1_status  (r1_status),
-        .t2_target_x(r2_target_x),
-        .t2_target_y(r2_target_y),
-        .t2_status  (),
-        .t3_target_x(r3_target_x),
-        .t3_target_y(r3_target_y),
-        .t3_status  (),
-        .done       (done_r)
-    );
-
-    Multi_Centroid u_Centroid_G (
-        .clk        (clk),
-        .reset      (reset),
-        .DE_in      (DE_out),
-        .x_in       (x_out),
-        .y_in       (y_out),
-        .blob_in    (green_blob),
-        .t1_target_x(g1_target_x),
-        .t1_target_y(g1_target_y),
-        .t1_status  (g1_status),
-        .t2_target_x(g2_target_x),
-        .t2_target_y(g2_target_y),
-        .t2_status  (),
-        .t3_target_x(g3_target_x),
-        .t3_target_y(g3_target_y),
-        .t3_status  (),
-        .done       (done_g)
-    );
-
-    Multi_Centroid u_Centroid_B (
-        .clk        (clk),
-        .reset      (reset),
-        .DE_in      (DE_out),
-        .x_in       (x_out),
-        .y_in       (y_out),
-        .blob_in    (blue_blob),
-        .t1_target_x(b1_target_x),
-        .t1_target_y(b1_target_y),
-        .t1_status  (b1_status),
-        .t2_target_x(b2_target_x),
-        .t2_target_y(b2_target_y),
-        .t2_status  (),
-        .t3_target_x(b3_target_x),
-        .t3_target_y(b3_target_y),
-        .t3_status  (),
-        .done       (done_b)
+    // Centroid (색상별 1타겟, done 1개)
+    Centroid u_Centroid (
+        .clk       (clk),
+        .reset     (reset),
+        .DE_in     (DE_out),
+        .x_in      (x_out),
+        .y_in      (y_out),
+        .red_blob  (red_blob),
+        .green_blob(green_blob),
+        .blue_blob (blue_blob),
+        .r_target_x(r_target_x),
+        .r_target_y(r_target_y),
+        .g_target_x(g_target_x),
+        .g_target_y(g_target_y),
+        .b_target_x(b_target_x),
+        .b_target_y(b_target_y),
+        .r_status  (r_status),
+        .g_status  (g_status),
+        .b_status  (b_status),
+        .done      (done)
     );
 
 endmodule
