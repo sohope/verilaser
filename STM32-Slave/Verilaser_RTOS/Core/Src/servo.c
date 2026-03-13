@@ -7,6 +7,7 @@
 
 #include "servo.h"
 #include <stdlib.h>
+#include <math.h>
 
 extern TIM_HandleTypeDef htim3;
 
@@ -16,8 +17,14 @@ static float current_tilt = 90.0f;
 static void Servo_SetAngle(float pan, float tilt);
 static void Servo_Clamp(void);
 
+static float g_offset_x = 0.0f;
+static float g_offset_y = 0.0f;
+
 void Servo_Init(void)
 {
+    g_offset_x = CALC_OFFSET_X() - 80.0f;
+    g_offset_y = CALC_OFFSET_Y() - 60.0f;
+
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //pan
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); //tilt
 
@@ -27,8 +34,11 @@ void Servo_Init(void)
 /* Mode 2: 자동 추적 — I2C 좌표 기반 절대 위치 제어 */
 void Servo_Track(uint16_t cx, uint16_t cy)
 {
-	int16_t err_x = (int16_t)cx - SCREEN_CX - OFFSET_X;
-	int16_t err_y = (int16_t)cy - SCREEN_CY - OFFSET_Y;
+//	int16_t err_x = (int16_t)cx - SCREEN_CX - OFFSET_X;
+//	int16_t err_y = (int16_t)cy - SCREEN_CY - OFFSET_Y;
+
+    int16_t err_x = (int16_t)cx - SCREEN_CX - (int16_t)g_offset_x;
+    int16_t err_y = (int16_t)cy - SCREEN_CY - (int16_t)g_offset_y;
 
 	current_pan  = 90.0f + ((float)err_x * -PAN_GAIN);
 	current_tilt = 90.0f + ((float)err_y * TILT_GAIN);
