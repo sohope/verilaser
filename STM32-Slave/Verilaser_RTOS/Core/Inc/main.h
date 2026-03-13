@@ -59,9 +59,9 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define I2C_SLAVE_ADDR   0x20
+//#define I2C_SLAVE_ADDR   0x20
 // #define I2C_SLAVE_ADDR   0x22
-// #define I2C_SLAVE_ADDR   0x24
+ #define I2C_SLAVE_ADDR   0x24
 
 #define B1_Pin GPIO_PIN_13
 #define B1_GPIO_Port GPIOC

@@ -22,8 +22,8 @@ static float g_offset_y = 0.0f;
 
 void Servo_Init(void)
 {
-    g_offset_x = CALC_OFFSET_X() - 80.0f;
-    g_offset_y = CALC_OFFSET_Y() - 60.0f;
+    g_offset_x = CALC_OFFSET_X() + 160.0f;
+    g_offset_y = CALC_OFFSET_Y() + -5.0f;
 
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //pan
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); //tilt

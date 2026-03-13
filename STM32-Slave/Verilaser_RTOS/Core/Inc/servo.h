@@ -18,7 +18,7 @@
 #define DEADZONE_JOY 15			// 조이스틱 속도 조절 요소 2
 #define CCR_MIN      500
 #define CCR_MAX      2500
-#define PAN_GAIN     0.125f   /* pan: 절반 (0.5 * 0.5) */
+#define PAN_GAIN     0.095f   /* pan: 절반 (0.5 * 0.5) */
 #define TILT_GAIN    0.125f  /* tilt: 3/4 (0.5 * 0.75) */
 
 /* 물리 파라미터 (mm) */
