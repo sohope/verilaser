@@ -175,11 +175,22 @@ def draw_overlay(frame, uart_data, fps):
         ('Turret #3 (B)', 'b', COLOR_B),
     ]
 
+    h, w = frame.shape[:2]
+    scale_x = w / 640.0
+    scale_y = h / 480.0
+    cross_size = 20
+
     for label, ch, color in channels:
         d = uart_data[ch]
         if d['status']:
             pan, tilt = calc_pan_tilt(d['x'], d['y'])
             text = f"{label}  Pan:{pan:5.1f}  Tilt:{tilt:5.1f}  ({d['x']:3d},{d['y']:3d})"
+
+            # 십자 표시
+            cx = int(d['x'] * scale_x)
+            cy = int(d['y'] * scale_y)
+            cv2.line(frame, (cx - cross_size, cy), (cx + cross_size, cy), color, 2)
+            cv2.line(frame, (cx, cy - cross_size), (cx, cy + cross_size), color, 2)
         else:
             text = f"{label}  Pan: 90.0  Tilt: 90.0  (no target)"
         y += draw_text(frame, text, (10, y), color)
