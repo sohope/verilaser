@@ -26,7 +26,7 @@ module Color_Detect #(
 );
 
     localparam S_MIN = 8'd150;
-    localparam V_MIN = 8'd60;
+    localparam V_MIN = 8'd55;
 
     logic in_roi_sig;
 
@@ -66,7 +66,7 @@ module Color_Detect #(
             // if (DE_in && in_roi_sig && (S_in >= S_MIN) && V_in > V_MIN) begin
                 // Red : 0~10 or 170~179
                 red_detect   <= ((H_in <= 8'd6) || (H_in >= 8'd173)) ? 1'b1 : 1'b0;
-                green_detect <= ((H_in <= 8'd75) && (H_in >= 8'd45)) ? 1'b1 : 1'b0;
+                green_detect <= ((H_in <= 8'd75) && (H_in >= 8'd40)) ? 1'b1 : 1'b0;
                 blue_detect  <= ((H_in <= 8'd135) && (H_in >= 8'd105)) ? 1'b1 : 1'b0;
             end else begin
                 red_detect   <= 1'b0;
