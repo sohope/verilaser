@@ -104,7 +104,7 @@ module top_VGA_OV7670 (
         .x_pixel_o(w_x_pixel_o),
         .y_pixel_o(w_y_pixel_o)
     );
-
+//
     OV7670_Init_Controller #(
         .N_REGS(66)
     ) U_INIT_CONTROLLER (
@@ -130,7 +130,7 @@ module top_VGA_OV7670 (
         .S_out (w_S_o_HSV),
         .V_out (w_V_o_HSV)
     );
-
+//
     logic w_DE_o_CD;
     logic [9:0] w_x_out_CD, w_y_out_CD;
     logic w_red_detect, w_green_detect, w_blue_detect;
