@@ -110,7 +110,7 @@ module top_VGA_OV7670 (
     );
 
     OV7670_Init_Controller #(
-        .N_REGS(66)
+        .N_REGS(71)
     ) U_INIT_CONTROLLER (
         .clk  (clk_100m),
         .reset(reset),
@@ -150,9 +150,15 @@ module top_VGA_OV7670 (
         .green_blob(w_green_blob),
         .blue_blob (w_blue_blob),
         // target 좌표
-        .r_target_x(w_r_x), .r_target_y(w_r_y), .r_status(w_r_status),
-        .g_target_x(w_g_x), .g_target_y(w_g_y), .g_status(w_g_status),
-        .b_target_x(w_b_x), .b_target_y(w_b_y), .b_status(w_b_status),
+        .r_target_x(w_r_x),
+        .r_target_y(w_r_y),
+        .r_status  (w_r_status),
+        .g_target_x(w_g_x),
+        .g_target_y(w_g_y),
+        .g_status  (w_g_status),
+        .b_target_x(w_b_x),
+        .b_target_y(w_b_y),
+        .b_status  (w_b_status),
         .done      (w_done)
     );
 
@@ -167,18 +173,27 @@ module top_VGA_OV7670 (
     ) u_VGA_Display_Pipeline (
         .sw(sw),
         .DE(w_DE),
-        .vga_x(w_x_VP),
-        .vga_y(w_y_VP),
+        .vga_x(w_x_pixel_o),
+        .vga_y(w_y_pixel_o),
         .camera_rgb(w_camera_rgb),
-        .r1_target_x(w_r_x), .r1_target_y(w_r_y),
-        .r2_target_x(10'd0), .r2_target_y(10'd0),
-        .r3_target_x(10'd0), .r3_target_y(10'd0),
-        .g1_target_x(w_g_x), .g1_target_y(w_g_y),
-        .g2_target_x(10'd0), .g2_target_y(10'd0),
-        .g3_target_x(10'd0), .g3_target_y(10'd0),
-        .b1_target_x(w_b_x), .b1_target_y(w_b_y),
-        .b2_target_x(10'd0), .b2_target_y(10'd0),
-        .b3_target_x(10'd0), .b3_target_y(10'd0),
+        .r1_target_x(w_r_x),
+        .r1_target_y(w_r_y),
+        .r2_target_x(10'd0),
+        .r2_target_y(10'd0),
+        .r3_target_x(10'd0),
+        .r3_target_y(10'd0),
+        .g1_target_x(w_g_x),
+        .g1_target_y(w_g_y),
+        .g2_target_x(10'd0),
+        .g2_target_y(10'd0),
+        .g3_target_x(10'd0),
+        .g3_target_y(10'd0),
+        .b1_target_x(w_b_x),
+        .b1_target_y(w_b_y),
+        .b2_target_x(10'd0),
+        .b2_target_y(10'd0),
+        .b3_target_x(10'd0),
+        .b3_target_y(10'd0),
         .red_blob(w_red_blob),
         .green_blob(w_green_blob),
         .blue_blob(w_blue_blob),
