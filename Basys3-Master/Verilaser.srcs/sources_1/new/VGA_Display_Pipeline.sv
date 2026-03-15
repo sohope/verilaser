@@ -8,6 +8,7 @@ module VGA_Display_Pipeline #(
     parameter ROI_Y_MAX = 10'd160
 ) (
     input  logic        sw,
+    input  logic        sw1,  // Crossline 표시 (0: 끔, 1: 켬)
     input  logic        DE,
     input  logic [ 9:0] vga_x,
     input  logic [ 9:0] vga_y,
@@ -50,6 +51,7 @@ module VGA_Display_Pipeline #(
         .ROI_Y_MIN(ROI_Y_MIN),
         .ROI_Y_MAX(ROI_Y_MAX)
     ) u_Crossline_Display (
+        .sw1(sw1),
         .vga_x(vga_x),
         .vga_y(vga_y),
         .camera_rgb(camera_rgb),
@@ -102,6 +104,7 @@ module Crossline_Display #(
     parameter ROI_Y_MIN = 10'd120,
     parameter ROI_Y_MAX = 10'd160
 ) (
+    input logic        sw1,  // Crossline 표시 (0: 끔, 1: 켬)
     input logic [ 9:0] vga_x,
     input logic [ 9:0] vga_y,
     input logic [11:0] camera_rgb,
@@ -174,9 +177,9 @@ module Crossline_Display #(
             if (vga_x < 320) begin
                 // if (draw_roi_border) vga_rgb = 12'h000;
                 // else 
-                if (draw_r_cross) vga_rgb = 12'hF00;
-                else if (draw_g_cross) vga_rgb = 12'h0F0;
-                else if (draw_b_cross) vga_rgb = 12'h00F;
+                if (~sw1 && draw_r_cross) vga_rgb = 12'hF00;
+                else if (~sw1 && draw_g_cross) vga_rgb = 12'h0F0;
+                else if (~sw1 && draw_b_cross) vga_rgb = 12'h00F;
                 else vga_rgb = camera_rgb;
             end else begin
                 vga_rgb = red_blob ? 12'hF00 : 12'h000;

@@ -23,7 +23,9 @@ module top_VGA_OV7670 (
     input  logic       RsRx,
     output logic       RsTx,
     // Display mode switch (0: 원본, 1: 디버깅)
-    input  logic       sw
+    input  logic       sw,
+    // Crossline 표시 switch (0: 끔, 1: 켬)
+    input  logic       sw1
 );
     logic                         clk_100m;
     logic [                  9:0] x_pixel;
@@ -166,6 +168,7 @@ module top_VGA_OV7670 (
         .ROI_Y_MAX(TARGET_Y_MAX)
     ) u_VGA_Display_Pipeline (
         .sw(sw),
+        .sw1(sw1),
         .DE(w_DE),
         .vga_x(w_x_VP),
         .vga_y(w_y_VP),
