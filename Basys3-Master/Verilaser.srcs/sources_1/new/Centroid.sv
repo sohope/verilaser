@@ -21,7 +21,12 @@ module Centroid (
 
     output logic r_status,
     output logic g_status,
-    output logic b_status
+    output logic b_status,
+
+    // Bounding Box 출력
+    output logic [9:0] r_bbox_x1, r_bbox_y1, r_bbox_x2, r_bbox_y2,
+    output logic [9:0] g_bbox_x1, g_bbox_y1, g_bbox_x2, g_bbox_y2,
+    output logic [9:0] b_bbox_x1, b_bbox_y1, b_bbox_x2, b_bbox_y2
 
 );
 
@@ -37,6 +42,11 @@ module Centroid (
     logic [19:0] g_count;
     logic [19:0] b_count;
 
+    // Bounding box 누적용
+    logic [9:0] r_xmin, r_xmax, r_ymin, r_ymax;
+    logic [9:0] g_xmin, g_xmax, g_ymin, g_ymax;
+    logic [9:0] b_xmin, b_xmax, b_ymin, b_ymax;
+
     logic frame_done;
     assign frame_done = (x_in == (IMG_WIDTH -1) && y_in == (IMG_HEIGHT - 1) && DE_in);
 
@@ -45,56 +55,55 @@ module Centroid (
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset) begin
-            r_sum_x <= 0;
-            r_sum_y <= 0;
-            g_sum_x <= 0;
-            g_sum_y <= 0;
-            b_sum_x <= 0;
-            b_sum_y <= 0;
-            r_count <= 0;
-            g_count <= 0;
-            b_count <= 0;
-            done    <= 0;
+            r_sum_x <= 0; r_sum_y <= 0; r_count <= 0;
+            g_sum_x <= 0; g_sum_y <= 0; g_count <= 0;
+            b_sum_x <= 0; b_sum_y <= 0; b_count <= 0;
+            r_xmin <= 10'h3FF; r_xmax <= 0; r_ymin <= 10'h3FF; r_ymax <= 0;
+            g_xmin <= 10'h3FF; g_xmax <= 0; g_ymin <= 10'h3FF; g_ymax <= 0;
+            b_xmin <= 10'h3FF; b_xmax <= 0; b_ymin <= 10'h3FF; b_ymax <= 0;
+            done <= 0;
         end else if (frame_done) begin
             if (r_count > THRESHOLD) begin
                 r_target_x <= r_sum_x / r_count;
                 r_target_y <= r_sum_y / r_count;
+                r_bbox_x1 <= r_xmin; r_bbox_y1 <= r_ymin;
+                r_bbox_x2 <= r_xmax; r_bbox_y2 <= r_ymax;
                 r_status   <= 1'b1;
             end else begin
-                r_target_x <= 0;
-                r_target_y <= 0;
+                r_target_x <= 0; r_target_y <= 0;
+                r_bbox_x1 <= 0; r_bbox_y1 <= 0; r_bbox_x2 <= 0; r_bbox_y2 <= 0;
                 r_status   <= 1'b0;
             end
             if (g_count > THRESHOLD) begin
                 g_target_x <= g_sum_x / g_count;
                 g_target_y <= g_sum_y / g_count;
+                g_bbox_x1 <= g_xmin; g_bbox_y1 <= g_ymin;
+                g_bbox_x2 <= g_xmax; g_bbox_y2 <= g_ymax;
                 g_status   <= 1'b1;
             end else begin
-                g_target_x <= 0;
-                g_target_y <= 0;
+                g_target_x <= 0; g_target_y <= 0;
+                g_bbox_x1 <= 0; g_bbox_y1 <= 0; g_bbox_x2 <= 0; g_bbox_y2 <= 0;
                 g_status   <= 1'b0;
             end
-
             if (b_count > THRESHOLD) begin
                 b_target_x <= b_sum_x / b_count;
                 b_target_y <= b_sum_y / b_count;
+                b_bbox_x1 <= b_xmin; b_bbox_y1 <= b_ymin;
+                b_bbox_x2 <= b_xmax; b_bbox_y2 <= b_ymax;
                 b_status   <= 1'b1;
             end else begin
-                b_target_x <= 0;
-                b_target_y <= 0;
+                b_target_x <= 0; b_target_y <= 0;
+                b_bbox_x1 <= 0; b_bbox_y1 <= 0; b_bbox_x2 <= 0; b_bbox_y2 <= 0;
                 b_status   <= 1'b0;
             end
 
             done    <= 1;
-            r_sum_x <= 0;
-            r_sum_y <= 0;
-            r_count <= 0;
-            g_sum_x <= 0;
-            g_sum_y <= 0;
-            g_count <= 0;
-            b_sum_x <= 0;
-            b_sum_y <= 0;
-            b_count <= 0;
+            r_sum_x <= 0; r_sum_y <= 0; r_count <= 0;
+            g_sum_x <= 0; g_sum_y <= 0; g_count <= 0;
+            b_sum_x <= 0; b_sum_y <= 0; b_count <= 0;
+            r_xmin <= 10'h3FF; r_xmax <= 0; r_ymin <= 10'h3FF; r_ymax <= 0;
+            g_xmin <= 10'h3FF; g_xmax <= 0; g_ymin <= 10'h3FF; g_ymax <= 0;
+            b_xmin <= 10'h3FF; b_xmax <= 0; b_ymin <= 10'h3FF; b_ymax <= 0;
 
         end else if (q1_active) begin
             done <= 0;
@@ -102,16 +111,28 @@ module Centroid (
                 r_sum_x <= r_sum_x + x_in;
                 r_sum_y <= r_sum_y + y_in;
                 r_count <= r_count + 1;
+                if (x_in < r_xmin) r_xmin <= x_in;
+                if (x_in > r_xmax) r_xmax <= x_in;
+                if (y_in < r_ymin) r_ymin <= y_in;
+                if (y_in > r_ymax) r_ymax <= y_in;
             end
             if (green_blob) begin
                 g_sum_x <= g_sum_x + x_in;
                 g_sum_y <= g_sum_y + y_in;
                 g_count <= g_count + 1;
+                if (x_in < g_xmin) g_xmin <= x_in;
+                if (x_in > g_xmax) g_xmax <= x_in;
+                if (y_in < g_ymin) g_ymin <= y_in;
+                if (y_in > g_ymax) g_ymax <= y_in;
             end
             if (blue_blob) begin
                 b_sum_x <= b_sum_x + x_in;
                 b_sum_y <= b_sum_y + y_in;
                 b_count <= b_count + 1;
+                if (x_in < b_xmin) b_xmin <= x_in;
+                if (x_in > b_xmax) b_xmax <= x_in;
+                if (y_in < b_ymin) b_ymin <= y_in;
+                if (y_in > b_ymax) b_ymax <= y_in;
             end
         end
     end

@@ -34,7 +34,11 @@ module Vision_Pipeline #(
     output logic [9:0] b_target_x,
     output logic [9:0] b_target_y,
     output logic       b_status,
-    output logic       done
+    output logic       done,
+    // Bounding Box
+    output logic [9:0] r_bbox_x1, r_bbox_y1, r_bbox_x2, r_bbox_y2,
+    output logic [9:0] g_bbox_x1, g_bbox_y1, g_bbox_x2, g_bbox_y2,
+    output logic [9:0] b_bbox_x1, b_bbox_y1, b_bbox_x2, b_bbox_y2
 );
 
     // HSV 출력
@@ -123,7 +127,10 @@ module Vision_Pipeline #(
         .r_status  (r_status),
         .g_status  (g_status),
         .b_status  (b_status),
-        .done      (done)
+        .done      (done),
+        .r_bbox_x1(r_bbox_x1), .r_bbox_y1(r_bbox_y1), .r_bbox_x2(r_bbox_x2), .r_bbox_y2(r_bbox_y2),
+        .g_bbox_x1(g_bbox_x1), .g_bbox_y1(g_bbox_y1), .g_bbox_x2(g_bbox_x2), .g_bbox_y2(g_bbox_y2),
+        .b_bbox_x1(b_bbox_x1), .b_bbox_y1(b_bbox_y1), .b_bbox_x2(b_bbox_x2), .b_bbox_y2(b_bbox_y2)
     );
 
 endmodule

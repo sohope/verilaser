@@ -129,6 +129,10 @@ module top_VGA_OV7670 (
     logic [9:0] w_b_x, w_b_y;
     logic w_r_status, w_g_status, w_b_status;
     logic w_done;
+    // Bounding Box (QVGA 좌표)
+    logic [9:0] w_r_bx1, w_r_by1, w_r_bx2, w_r_by2;
+    logic [9:0] w_g_bx1, w_g_by1, w_g_bx2, w_g_by2;
+    logic [9:0] w_b_bx1, w_b_by1, w_b_bx2, w_b_by2;
 
     Vision_Pipeline #(
         .ROI_X_MIN(TARGET_X_MIN),
@@ -155,7 +159,10 @@ module top_VGA_OV7670 (
         .r_target_x(w_r_x), .r_target_y(w_r_y), .r_status(w_r_status),
         .g_target_x(w_g_x), .g_target_y(w_g_y), .g_status(w_g_status),
         .b_target_x(w_b_x), .b_target_y(w_b_y), .b_status(w_b_status),
-        .done      (w_done)
+        .done      (w_done),
+        .r_bbox_x1(w_r_bx1), .r_bbox_y1(w_r_by1), .r_bbox_x2(w_r_bx2), .r_bbox_y2(w_r_by2),
+        .g_bbox_x1(w_g_bx1), .g_bbox_y1(w_g_by1), .g_bbox_x2(w_g_bx2), .g_bbox_y2(w_g_by2),
+        .b_bbox_x1(w_b_bx1), .b_bbox_y1(w_b_by1), .b_bbox_x2(w_b_bx2), .b_bbox_y2(w_b_by2)
     );
 
     logic [11:0] w_camera_rgb;
@@ -185,7 +192,7 @@ module top_VGA_OV7670 (
         end
     end
 
-    // 디스플레이용 십자선 좌표: sw=0(업스케일) → QVGA*2, sw=1(타일링) → QVGA 그대로
+    // 디스플레이용 좌표: sw=0(업스케일) → QVGA*2, sw=1(타일링) → QVGA 그대로
     logic [9:0] disp_r_x, disp_r_y;
     logic [9:0] disp_g_x, disp_g_y;
     logic [9:0] disp_b_x, disp_b_y;
@@ -195,6 +202,22 @@ module top_VGA_OV7670 (
     assign disp_g_y = sw ? w_g_y : {w_g_y[8:0], 1'b0};
     assign disp_b_x = sw ? w_b_x : {w_b_x[8:0], 1'b0};
     assign disp_b_y = sw ? w_b_y : {w_b_y[8:0], 1'b0};
+    // Bounding Box 디스플레이 좌표
+    logic [9:0] disp_r_bx1, disp_r_by1, disp_r_bx2, disp_r_by2;
+    logic [9:0] disp_g_bx1, disp_g_by1, disp_g_bx2, disp_g_by2;
+    logic [9:0] disp_b_bx1, disp_b_by1, disp_b_bx2, disp_b_by2;
+    assign disp_r_bx1 = sw ? w_r_bx1 : {w_r_bx1[8:0], 1'b0};
+    assign disp_r_by1 = sw ? w_r_by1 : {w_r_by1[8:0], 1'b0};
+    assign disp_r_bx2 = sw ? w_r_bx2 : {w_r_bx2[8:0], 1'b0};
+    assign disp_r_by2 = sw ? w_r_by2 : {w_r_by2[8:0], 1'b0};
+    assign disp_g_bx1 = sw ? w_g_bx1 : {w_g_bx1[8:0], 1'b0};
+    assign disp_g_by1 = sw ? w_g_by1 : {w_g_by1[8:0], 1'b0};
+    assign disp_g_bx2 = sw ? w_g_bx2 : {w_g_bx2[8:0], 1'b0};
+    assign disp_g_by2 = sw ? w_g_by2 : {w_g_by2[8:0], 1'b0};
+    assign disp_b_bx1 = sw ? w_b_bx1 : {w_b_bx1[8:0], 1'b0};
+    assign disp_b_by1 = sw ? w_b_by1 : {w_b_by1[8:0], 1'b0};
+    assign disp_b_bx2 = sw ? w_b_bx2 : {w_b_bx2[8:0], 1'b0};
+    assign disp_b_by2 = sw ? w_b_by2 : {w_b_by2[8:0], 1'b0};
 
     VGA_Display_Pipeline #(
         .ROI_X_MIN(TARGET_X_MIN),
@@ -217,6 +240,9 @@ module top_VGA_OV7670 (
         .b1_target_x(disp_b_x), .b1_target_y(disp_b_y),
         .b2_target_x(10'd0),    .b2_target_y(10'd0),
         .b3_target_x(10'd0),    .b3_target_y(10'd0),
+        .r_bbox_x1(disp_r_bx1), .r_bbox_y1(disp_r_by1), .r_bbox_x2(disp_r_bx2), .r_bbox_y2(disp_r_by2),
+        .g_bbox_x1(disp_g_bx1), .g_bbox_y1(disp_g_by1), .g_bbox_x2(disp_g_bx2), .g_bbox_y2(disp_g_by2),
+        .b_bbox_x1(disp_b_bx1), .b_bbox_y1(disp_b_by1), .b_bbox_x2(disp_b_bx2), .b_bbox_y2(disp_b_by2),
         .red_blob(w_red_blob),
         .green_blob(w_green_blob),
         .blue_blob(w_blue_blob),
