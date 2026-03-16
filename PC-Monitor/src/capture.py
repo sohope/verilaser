@@ -136,9 +136,9 @@ class UartReceiver:
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 COLOR_WHITE = (255, 255, 255)
 COLOR_BG = (0, 0, 0)
-COLOR_R = (0, 0, 255)
-COLOR_G = (0, 255, 0)
-COLOR_B = (255, 0, 0)
+COLOR_R = (120, 120, 255)   # 파스텔 코랄
+COLOR_G = (120, 255, 120)   # 파스텔 민트
+COLOR_B = (255, 160, 100)   # 파스텔 스카이블루
 
 
 def draw_text(frame, text, pos, color=COLOR_WHITE, scale=0.6, thickness=1):
