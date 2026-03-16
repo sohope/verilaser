@@ -22,8 +22,9 @@ static float g_offset_y = 0.0f;
 
 void Servo_Init(void)
 {
-    g_offset_x = CALC_OFFSET_X() - 80.0f;
-    g_offset_y = CALC_OFFSET_Y() - 60.0f;
+
+	g_offset_x = CALC_OFFSET_X() + TRACK_TRIM_X;
+	g_offset_y = CALC_OFFSET_Y() + TRACK_TRIM_Y;
 
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //pan
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2); //tilt
@@ -31,23 +32,22 @@ void Servo_Init(void)
 	Servo_SetAngle(90.0f, 90.0f);
 }
 
-/* Mode 2: 자동 추적 — I2C 좌표 기반 절대 위치 제어 */
+/* Mode 0: 자동 추적 — I2C 좌표 기반 절대 위치 제어 */
 void Servo_Track(uint16_t cx, uint16_t cy)
 {
-//	int16_t err_x = (int16_t)cx - SCREEN_CX - OFFSET_X;
-//	int16_t err_y = (int16_t)cy - SCREEN_CY - OFFSET_Y;
-
     int16_t err_x = (int16_t)cx - SCREEN_CX - (int16_t)g_offset_x;
     int16_t err_y = (int16_t)cy - SCREEN_CY - (int16_t)g_offset_y;
 
-	current_pan  = 90.0f + ((float)err_x * -PAN_GAIN);
-	current_tilt = 90.0f + ((float)err_y * TILT_GAIN);
+//    current_pan  = (90.0f + CENTER_TRIM_X) + ((float)err_x * -PAN_GAIN);
+//    current_tilt = (90.0f + CENTER_TRIM_Y) + ((float)err_y * TILT_GAIN);
+    current_pan  = (90.0f) + ((float)err_x * -PAN_GAIN);
+    current_tilt = (90.0f) + ((float)err_y * TILT_GAIN);
 
 	Servo_Clamp();
 	Servo_SetAngle(current_pan, current_tilt);
 }
 
-/* Mode 0: 수동 모드 — 조이스틱 누적 제어 (LeeJae 방식) */
+/* Mode 1: 수동 모드 — 조이스틱 누적 제어 (LeeJae 방식) */
 void Servo_Manual(uint16_t cx, uint16_t cy)
 {
 	int16_t err_x = (int16_t)cx - SCREEN_CX;
@@ -65,11 +65,11 @@ void Servo_Manual(uint16_t cx, uint16_t cy)
 	Servo_SetAngle(current_pan, current_tilt);
 }
 
-/* Mode 1: 영점 조절 — 서보를 90°/90° 기준점으로 이동 */
+/* Mode 2: 영점 조절 — 서보를 90°/90° 기준점으로 이동 */
 void Servo_GoCenter(void)
 {
-	current_pan  = 90.0f;
-	current_tilt = 90.0f;
+	current_pan  = 90.0f + CENTER_TRIM_X;
+	current_tilt = 90.0f + CENTER_TRIM_Y;
 	Servo_SetAngle(current_pan, current_tilt);
 }
 

@@ -101,7 +101,7 @@ volatile uint32_t i2c_rx_count = 0;
 volatile uint32_t i2c_err_count = 0;
 volatile TargetData_t last_rx_data;
 volatile uint8_t g_target_status = 0;
-volatile uint8_t g_mode = MODE_MANUAL;   /* 0=?��?��, 1=?��?��, 2=?��?�� */
+volatile uint8_t g_mode = MODE_TRACK;   /* 0= MODE_TRACK, 1= MODE_MANUAL , 2= MODE_ZEROING */
 volatile uint8_t g_aim_locked = 0;       /* 1=조�? ?���?(1�? 경과), 0=경고 �? */
 char uart_buf[128];
 /* USER CODE END PV */
@@ -731,7 +731,7 @@ void I2C_Task(void *argument)
 {
   /* USER CODE BEGIN I2C_Task */
   /* ?��버그 로그 ?��?�� ?��?��?��: UART ?��?��?? ?��기서�? */
-  static const char *mode_names[] = {"MAN", "ZERO", "TRK"};
+  static const char *mode_names[] = {"TRK", "MAN", "ZERO"};
 
   for(;;)
   {

@@ -226,6 +226,7 @@ module top_VGA_OV7670 (
         .ROI_Y_MAX(TARGET_Y_MAX)
     ) u_VGA_Display_Pipeline (
         .sw(sw),
+<<<<<<< HEAD
         .sw1(sw1),
         .DE(disp_DE_sr[5]),
         .vga_x(disp_x_sr[5]),
@@ -243,6 +244,30 @@ module top_VGA_OV7670 (
         .r_bbox_x1(disp_r_bx1), .r_bbox_y1(disp_r_by1), .r_bbox_x2(disp_r_bx2), .r_bbox_y2(disp_r_by2),
         .g_bbox_x1(disp_g_bx1), .g_bbox_y1(disp_g_by1), .g_bbox_x2(disp_g_bx2), .g_bbox_y2(disp_g_by2),
         .b_bbox_x1(disp_b_bx1), .b_bbox_y1(disp_b_by1), .b_bbox_x2(disp_b_bx2), .b_bbox_y2(disp_b_by2),
+=======
+        .DE(w_DE),
+        .vga_x(w_x_pixel_o),
+        .vga_y(w_y_pixel_o),
+        .camera_rgb(w_camera_rgb),
+        .r1_target_x(w_r_x),
+        .r1_target_y(w_r_y),
+        .r2_target_x(10'd0),
+        .r2_target_y(10'd0),
+        .r3_target_x(10'd0),
+        .r3_target_y(10'd0),
+        .g1_target_x(w_g_x),
+        .g1_target_y(w_g_y),
+        .g2_target_x(10'd0),
+        .g2_target_y(10'd0),
+        .g3_target_x(10'd0),
+        .g3_target_y(10'd0),
+        .b1_target_x(w_b_x),
+        .b1_target_y(w_b_y),
+        .b2_target_x(10'd0),
+        .b2_target_y(10'd0),
+        .b3_target_x(10'd0),
+        .b3_target_y(10'd0),
+>>>>>>> PLJ-Motor
         .red_blob(w_red_blob),
         .green_blob(w_green_blob),
         .blue_blob(w_blue_blob),
