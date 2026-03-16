@@ -51,6 +51,7 @@ module VGA_Display_Pipeline #(
         .ROI_Y_MIN(ROI_Y_MIN),
         .ROI_Y_MAX(ROI_Y_MAX)
     ) u_Crossline_Display (
+        .sw(sw),
         .sw1(sw1),
         .vga_x(vga_x),
         .vga_y(vga_y),
@@ -81,12 +82,8 @@ module VGA_Display_Pipeline #(
         .o_vga_y()
     );
 
-    Display_Mux u_Display_Mux (
-        .sw(sw),
-        .camera_rgb(camera_rgb),
-        .debug_rgb(w_debug_rgb),
-        .vga_rgb(w_vga_rgb)
-    );
+    // Crossline_Display가 sw에 따라 직접 모드 처리하므로 Mux 불필요
+    assign w_vga_rgb = w_debug_rgb;
 
     VGA_Output u_VGA_Output (
         .DE(DE),
@@ -104,7 +101,8 @@ module Crossline_Display #(
     parameter ROI_Y_MIN = 10'd120,
     parameter ROI_Y_MAX = 10'd160
 ) (
-    input logic        sw1,  // Crossline 표시 (0: 끔, 1: 켬)
+    input logic        sw,   // 0: 업스케일(원본), 1: 타일링(디버깅)
+    input logic        sw1,  // Crossline 표시 (0: 켬, 1: 끔)
     input logic [ 9:0] vga_x,
     input logic [ 9:0] vga_y,
     input logic [11:0] camera_rgb,
@@ -141,55 +139,48 @@ module Crossline_Display #(
 
 );
 
-
-    // cross line Macro 
+    // cross line Macro (좌표는 상위에서 sw에 따라 미리 스케일링됨)
     `define IS_CROSS(X, Y) ((X != 0 && Y != 0) && ((vga_x == X && vga_y >= Y - 10 && vga_y <= Y + 10) || (vga_y == Y && vga_x >= X - 10 && vga_x <= X + 10)))
 
     logic draw_r_cross, draw_g_cross, draw_b_cross;
 
-    // 같은 색깔의 십자가 중 하나라도 걸리면 1
     assign draw_r_cross =
-        `IS_CROSS(r1_target_x, r1_target_y)
-        ||
-        `IS_CROSS(r2_target_x, r2_target_y)
-        ||
+        `IS_CROSS(r1_target_x, r1_target_y) ||
+        `IS_CROSS(r2_target_x, r2_target_y) ||
         `IS_CROSS(r3_target_x, r3_target_y);
     assign draw_g_cross =
-        `IS_CROSS(g1_target_x, g1_target_y)
-        ||
-        `IS_CROSS(g2_target_x, g2_target_y)
-        ||
+        `IS_CROSS(g1_target_x, g1_target_y) ||
+        `IS_CROSS(g2_target_x, g2_target_y) ||
         `IS_CROSS(g3_target_x, g3_target_y);
     assign draw_b_cross =
-        `IS_CROSS(b1_target_x, b1_target_y)
-        ||
-        `IS_CROSS(b2_target_x, b2_target_y)
-        ||
+        `IS_CROSS(b1_target_x, b1_target_y) ||
+        `IS_CROSS(b2_target_x, b2_target_y) ||
         `IS_CROSS(b3_target_x, b3_target_y);
 
-    // logic draw_roi_border;
-    // assign draw_roi_border = 
-    // ((vga_x == ROI_X_MIN || vga_x == ROI_X_MAX) && (vga_y >= ROI_Y_MIN && vga_y <= ROI_Y_MAX)) ||
-    // ((vga_y == ROI_Y_MIN || vga_y == ROI_Y_MAX) && (vga_x >= ROI_X_MIN && vga_x <= ROI_X_MAX));
-
     always_comb begin
-        if (vga_y < 240) begin
-            if (vga_x < 320) begin
-                // if (draw_roi_border) vga_rgb = 12'h000;
-                // else 
-                if (~sw1 && draw_r_cross) vga_rgb = 12'hF00;
-                else if (~sw1 && draw_g_cross) vga_rgb = 12'h0F0;
-                else if (~sw1 && draw_b_cross) vga_rgb = 12'h00F;
-                else vga_rgb = camera_rgb;
+        if (sw) begin
+            // 타일링/디버깅 모드: 4분할 + Q1에 십자선
+            if (vga_y < 240) begin
+                if (vga_x < 320) begin
+                    if (~sw1 && draw_r_cross) vga_rgb = 12'hF00;
+                    else if (~sw1 && draw_g_cross) vga_rgb = 12'h0F0;
+                    else if (~sw1 && draw_b_cross) vga_rgb = 12'h00F;
+                    else vga_rgb = camera_rgb;
+                end else begin
+                    vga_rgb = red_blob ? 12'hF00 : 12'h000;
+                end
             end else begin
-                vga_rgb = red_blob ? 12'hF00 : 12'h000;
+                if (vga_x < 320)
+                    vga_rgb = green_blob ? 12'h0F0 : 12'h000;
+                else
+                    vga_rgb = blue_blob ? 12'h00F : 12'h000;
             end
         end else begin
-            if (vga_x < 320) begin
-                vga_rgb = green_blob ? 12'h0F0 : 12'h000;
-            end else begin
-                vga_rgb = blue_blob ? 12'h00F : 12'h000;
-            end
+            // 업스케일 모드: 전체 화면 + 2배 스케일 십자선
+            if (~sw1 && draw_r_cross) vga_rgb = 12'hF00;
+            else if (~sw1 && draw_g_cross) vga_rgb = 12'h0F0;
+            else if (~sw1 && draw_b_cross) vga_rgb = 12'h00F;
+            else vga_rgb = camera_rgb;
         end
     end
 

@@ -161,6 +161,41 @@ module top_VGA_OV7670 (
     logic [11:0] w_camera_rgb;
     assign w_camera_rgb = {w_red_o, w_green_o, w_blue_o};
 
+    // Pipeline alignment: Vision Pipeline adds 5 clock delays
+    // (HSV_Converter:1 + Color_Detect:1 + Blob_Filter:3)
+    // camera_rgb를 5클럭 지연시켜 Vision Pipeline 출력과 동기화
+    logic [11:0] rgb_sr [0:4];
+    // VGA 디스플레이 좌표와 DE를 6클럭 지연 (ImgMemReader:1 + Vision Pipeline:5)
+    logic [9:0] disp_x_sr [0:5];
+    logic [9:0] disp_y_sr [0:5];
+    logic       disp_DE_sr [0:5];
+
+    always_ff @(posedge rclk) begin
+        rgb_sr[0]     <= w_camera_rgb;
+        disp_x_sr[0]  <= x_pixel;
+        disp_y_sr[0]  <= y_pixel;
+        disp_DE_sr[0] <= DE;
+        for (int i = 1; i < 6; i++) begin
+            disp_x_sr[i]  <= disp_x_sr[i-1];
+            disp_y_sr[i]  <= disp_y_sr[i-1];
+            disp_DE_sr[i] <= disp_DE_sr[i-1];
+        end
+        for (int i = 1; i < 5; i++) begin
+            rgb_sr[i] <= rgb_sr[i-1];
+        end
+    end
+
+    // 디스플레이용 십자선 좌표: sw=0(업스케일) → QVGA*2, sw=1(타일링) → QVGA 그대로
+    logic [9:0] disp_r_x, disp_r_y;
+    logic [9:0] disp_g_x, disp_g_y;
+    logic [9:0] disp_b_x, disp_b_y;
+    assign disp_r_x = sw ? w_r_x : {w_r_x[8:0], 1'b0};
+    assign disp_r_y = sw ? w_r_y : {w_r_y[8:0], 1'b0};
+    assign disp_g_x = sw ? w_g_x : {w_g_x[8:0], 1'b0};
+    assign disp_g_y = sw ? w_g_y : {w_g_y[8:0], 1'b0};
+    assign disp_b_x = sw ? w_b_x : {w_b_x[8:0], 1'b0};
+    assign disp_b_y = sw ? w_b_y : {w_b_y[8:0], 1'b0};
+
     VGA_Display_Pipeline #(
         .ROI_X_MIN(TARGET_X_MIN),
         .ROI_X_MAX(TARGET_X_MAX),
@@ -169,19 +204,19 @@ module top_VGA_OV7670 (
     ) u_VGA_Display_Pipeline (
         .sw(sw),
         .sw1(sw1),
-        .DE(w_DE),
-        .vga_x(w_x_VP),
-        .vga_y(w_y_VP),
-        .camera_rgb(w_camera_rgb),
-        .r1_target_x(w_r_x), .r1_target_y(w_r_y),
-        .r2_target_x(10'd0), .r2_target_y(10'd0),
-        .r3_target_x(10'd0), .r3_target_y(10'd0),
-        .g1_target_x(w_g_x), .g1_target_y(w_g_y),
-        .g2_target_x(10'd0), .g2_target_y(10'd0),
-        .g3_target_x(10'd0), .g3_target_y(10'd0),
-        .b1_target_x(w_b_x), .b1_target_y(w_b_y),
-        .b2_target_x(10'd0), .b2_target_y(10'd0),
-        .b3_target_x(10'd0), .b3_target_y(10'd0),
+        .DE(disp_DE_sr[5]),
+        .vga_x(disp_x_sr[5]),
+        .vga_y(disp_y_sr[5]),
+        .camera_rgb(rgb_sr[4]),
+        .r1_target_x(disp_r_x), .r1_target_y(disp_r_y),
+        .r2_target_x(10'd0),    .r2_target_y(10'd0),
+        .r3_target_x(10'd0),    .r3_target_y(10'd0),
+        .g1_target_x(disp_g_x), .g1_target_y(disp_g_y),
+        .g2_target_x(10'd0),    .g2_target_y(10'd0),
+        .g3_target_x(10'd0),    .g3_target_y(10'd0),
+        .b1_target_x(disp_b_x), .b1_target_y(disp_b_y),
+        .b2_target_x(10'd0),    .b2_target_y(10'd0),
+        .b3_target_x(10'd0),    .b3_target_y(10'd0),
         .red_blob(w_red_blob),
         .green_blob(w_green_blob),
         .blue_blob(w_blue_blob),
