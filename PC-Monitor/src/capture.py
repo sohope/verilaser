@@ -187,10 +187,10 @@ def draw_overlay(frame, uart_data, fps):
             text = f"{label}  Pan:{pan:5.1f}  Tilt:{tilt:5.1f}  ({d['x']:3d},{d['y']:3d})"
 
             # 십자 표시
-            cx = int(d['x'] * scale_x)
-            cy = int(d['y'] * scale_y)
-            cv2.line(frame, (cx - cross_size, cy), (cx + cross_size, cy), color, 2)
-            cv2.line(frame, (cx, cy - cross_size), (cx, cy + cross_size), color, 2)
+            # cx = int(d['x'] * scale_x)
+            # cy = int(d['y'] * scale_y)
+            # cv2.line(frame, (cx - cross_size, cy), (cx + cross_size, cy), color, 2)
+            # cv2.line(frame, (cx, cy - cross_size), (cx, cy + cross_size), color, 2)
         else:
             text = f"{label}  Pan: 90.0  Tilt: 90.0  (no target)"
         y += draw_text(frame, text, (10, y), color)
