@@ -33,17 +33,17 @@ module ImgMemReader (
     assign addr = valid_640x480 ? (320 * map_y + map_x) : 'bz;
     assign {red_o,green_o,blue_o} = valid_640x480 ? {imgData[15:12],imgData[10:7],imgData[4:1]} : 0;
 
-    // Vision Pipeline에 전달할 픽셀 선택
-    // 타일링(sw=1): Q1(VGA x<320, y<240)만 → 전체 QVGA 1:1
-    // 업스케일(sw=0): 짝수 픽셀만 샘플링 → QVGA 픽셀당 1회, frame_done 1회
+    // 타일링(sw=1): VGA 좌표 출력, DE 게이팅 없음 → 4분면 blob 표시 정상 동작
+    //   Centroid의 q1_active(x<320,y<240)가 Q1만 필터, frame_done 1회
+    // 업스케일(sw=0): QVGA 좌표 출력, 짝수 픽셀만 → frame_done 1회
     logic pipeline_valid;
-    assign pipeline_valid = sw ? ((x_pixel < 320) && (y_pixel < 240))
+    assign pipeline_valid = sw ? 1'b1
                                : ((x_pixel[0] == 0) && (y_pixel[0] == 0));
 
     always_ff @(posedge clk) begin
-        DE_o <= valid_640x480 && pipeline_valid;
-        x_pixel_o <= map_x;
-        y_pixel_o <= map_y;
+        DE_o      <= valid_640x480 && pipeline_valid;
+        x_pixel_o <= sw ? x_pixel : map_x;
+        y_pixel_o <= sw ? y_pixel : map_y;
     end
 endmodule
 
