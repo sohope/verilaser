@@ -153,8 +153,6 @@ module Crossline_Display #(
 
     // 십자선 매크로 (좌표는 상위에서 sw에 따라 미리 스케일링됨)
     `define IS_CROSS(X, Y) ((X != 0 && Y != 0) && ((vga_x == X && vga_y >= Y - 10 && vga_y <= Y + 10) || (vga_y == Y && vga_x >= X - 10 && vga_x <= X + 10)))
-    // 바운딩 박스 매크로
-    `define IS_BBOX(X1, Y1, X2, Y2) ((X1 != X2 && Y1 != Y2) && (((vga_x == X1 || vga_x == X2) && (vga_y >= Y1 && vga_y <= Y2)) || ((vga_y == Y1 || vga_y == Y2) && (vga_x >= X1 && vga_x <= X2))))
 
     logic draw_r_cross, draw_g_cross, draw_b_cross;
     logic draw_r_bbox,  draw_g_bbox,  draw_b_bbox;
@@ -172,21 +170,36 @@ module Crossline_Display #(
         `IS_CROSS(b2_target_x, b2_target_y) ||
         `IS_CROSS(b3_target_x, b3_target_y);
 
-    assign draw_r_bbox = `IS_BBOX(r_bbox_x1, r_bbox_y1, r_bbox_x2, r_bbox_y2);
-    assign draw_g_bbox = `IS_BBOX(g_bbox_x1, g_bbox_y1, g_bbox_x2, g_bbox_y2);
-    assign draw_b_bbox = `IS_BBOX(b_bbox_x1, b_bbox_y1, b_bbox_x2, b_bbox_y2);
+    // 바운딩 박스 렌더링 모듈
+    logic [11:0] w_bbox_rgb;
+    logic        w_bbox_active;
+
+    BBox_Drawer u_BBox_Drawer (
+        .vga_x      (vga_x),
+        .vga_y      (vga_y),
+        .r_bbox_x1  (r_bbox_x1), .r_bbox_y1(r_bbox_y1),
+        .r_bbox_x2  (r_bbox_x2), .r_bbox_y2(r_bbox_y2),
+        .g_bbox_x1  (g_bbox_x1), .g_bbox_y1(g_bbox_y1),
+        .g_bbox_x2  (g_bbox_x2), .g_bbox_y2(g_bbox_y2),
+        .b_bbox_x1  (b_bbox_x1), .b_bbox_y1(b_bbox_y1),
+        .b_bbox_x2  (b_bbox_x2), .b_bbox_y2(b_bbox_y2),
+        .draw_r_bbox(draw_r_bbox),
+        .draw_g_bbox(draw_g_bbox),
+        .draw_b_bbox(draw_b_bbox),
+        .camera_rgb (camera_rgb),
+        .bbox_rgb   (w_bbox_rgb),
+        .bbox_active(w_bbox_active)
+    );
 
     always_comb begin
         if (sw) begin
             // 타일링/디버깅 모드: 4분할 + Q1에 십자선/바운딩박스
             if (vga_y < 240) begin
                 if (vga_x < 320) begin
-                    if      (~sw1 && draw_r_cross) vga_rgb = 12'hF00;
-                    else if (~sw1 && draw_g_cross) vga_rgb = 12'h0F0;
-                    else if (~sw1 && draw_b_cross) vga_rgb = 12'h00F;
-                    else if (~sw1 && draw_r_bbox)  vga_rgb = 12'hF00;
-                    else if (~sw1 && draw_g_bbox)  vga_rgb = 12'h0F0;
-                    else if (~sw1 && draw_b_bbox)  vga_rgb = 12'h00F;
+                    if      (~sw1 && draw_r_cross)  vga_rgb = 12'hF00;
+                    else if (~sw1 && draw_g_cross)  vga_rgb = 12'h0F0;
+                    else if (~sw1 && draw_b_cross)  vga_rgb = 12'h00F;
+                    else if (~sw1 && w_bbox_active)  vga_rgb = w_bbox_rgb;
                     else vga_rgb = camera_rgb;
                 end else begin
                     vga_rgb = red_blob ? 12'hF00 : 12'h000;
@@ -199,12 +212,10 @@ module Crossline_Display #(
             end
         end else begin
             // 업스케일 모드: 전체 화면 + 스케일 십자선/바운딩박스
-            if      (~sw1 && draw_r_cross) vga_rgb = 12'hF00;
-            else if (~sw1 && draw_g_cross) vga_rgb = 12'h0F0;
-            else if (~sw1 && draw_b_cross) vga_rgb = 12'h00F;
-            else if (~sw1 && draw_r_bbox)  vga_rgb = 12'hF00;
-            else if (~sw1 && draw_g_bbox)  vga_rgb = 12'h0F0;
-            else if (~sw1 && draw_b_bbox)  vga_rgb = 12'h00F;
+            if      (~sw1 && draw_r_cross)  vga_rgb = 12'hF00;
+            else if (~sw1 && draw_g_cross)  vga_rgb = 12'h0F0;
+            else if (~sw1 && draw_b_cross)  vga_rgb = 12'h00F;
+            else if (~sw1 && w_bbox_active)  vga_rgb = w_bbox_rgb;
             else vga_rgb = camera_rgb;
         end
     end
@@ -213,7 +224,6 @@ module Crossline_Display #(
     assign o_vga_y = vga_y;
 
     `undef IS_CROSS
-    `undef IS_BBOX
 endmodule
 
 // 4분할 디버깅 화면 구성
