@@ -1,22 +1,50 @@
 `timescale 1ns / 1ps
 
 module ImgMemReader (
+    input  logic                       clk,
     input  logic                       DE,
     input  logic [                9:0] x_pixel,
     input  logic [                9:0] y_pixel,
+    input  logic                       sw,       // 0: 업스케일(원본), 1: 타일링(디버깅)
     output logic [$clog2(320*240)-1:0] addr,
     input  logic [               15:0] imgData,
-    output logic [                3:0] port_red,
-    output logic [                3:0] port_green,
-    output logic [                3:0] port_blue
+    output logic [                3:0] red_o,
+    output logic [                3:0] green_o,
+    output logic [                3:0] blue_o,
+    output logic                       DE_o,
+    output logic [                9:0] x_pixel_o,
+    output logic [                9:0] y_pixel_o
 );
-    logic qvga_de;
-    assign qvga_de = DE && (x_pixel < 320) && (y_pixel < 240);
+    logic [8:0] map_x;
+    logic [8:0] map_y;
+    always_comb begin
+        if (~sw) begin
+            map_x = x_pixel[9:1];  // 640 -> 320 (2배 업스케일)
+            map_y = y_pixel[9:1];  // 480 -> 240
+        end else begin
+            map_x = (x_pixel >= 320) ? (x_pixel - 320) : x_pixel;  // 타일링
+            map_y = (y_pixel >= 240) ? (y_pixel - 240) : y_pixel;
+        end
+    end
 
-    assign addr = qvga_de? (320 * y_pixel + x_pixel) : 'bz;
-    // assign addr = DE ? (320 * (y_pixel >> 1) + (x_pixel >> 1)) : 'bz;
-    assign {port_red, port_green, port_blue} = qvga_de ? {imgData[15:12], imgData[10:7], imgData[4:1]} : 0;
+    logic valid_640x480;
+    assign valid_640x480 = DE && (x_pixel < 640) && (y_pixel < 480);
 
+    assign addr = valid_640x480 ? (320 * map_y + map_x) : 'bz;
+    assign {red_o,green_o,blue_o} = valid_640x480 ? {imgData[15:12],imgData[10:7],imgData[4:1]} : 0;
+
+    // 타일링(sw=1): VGA 좌표 출력, DE 게이팅 없음 → 4분면 blob 표시 정상 동작
+    //   Centroid의 q1_active(x<320,y<240)가 Q1만 필터, frame_done 1회
+    // 업스케일(sw=0): QVGA 좌표 출력, 짝수 픽셀만 → frame_done 1회
+    logic pipeline_valid;
+    assign pipeline_valid = sw ? 1'b1
+                               : ((x_pixel[0] == 0) && (y_pixel[0] == 0));
+
+    always_ff @(posedge clk) begin
+        DE_o      <= valid_640x480 && pipeline_valid;
+        x_pixel_o <= sw ? x_pixel : map_x;
+        y_pixel_o <= sw ? y_pixel : map_y;
+    end
 endmodule
 
 module ImgMemReader_upscaler (
